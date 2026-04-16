@@ -18,6 +18,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.path.join(BASE_DIR, "config_dashboard.json")
 TEMPLATE_PATH = os.path.join(BASE_DIR, "template_dashboard.html")
 FILE_UTILI_DIR = os.path.join(BASE_DIR, "FILE_UTILI")
+GARE_INPUT_DIR = os.path.join(BASE_DIR, "input", "gare")
 
 BLUE = "123764"
 LINE = "D8E1EE"
@@ -41,6 +42,39 @@ def safe_num(v):
         return fv
     except Exception:
         return None
+
+
+
+def load_live_gara():
+    folder = Path(GARE_INPUT_DIR)
+    if not folder.exists():
+        return None
+    files = sorted([p for p in folder.rglob("*.xlsx") if not p.name.startswith("~$")], key=lambda p: p.stat().st_mtime, reverse=True)
+    if not files:
+        return None
+    path = files[0]
+    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
+    ws = wb[wb.sheetnames[0]]
+    raw_date = ws.cell(1,4).value
+    updated_at = raw_date.strftime("%d/%m/%Y") if hasattr(raw_date, "strftime") else (str(raw_date) if raw_date else "")
+    rows = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        pdv = norm_pdv(row[0] if len(row) > 0 else None)
+        if not pdv:
+            continue
+        vendite = safe_num(row[3] if len(row) > 3 else None)
+        rows.append({
+            "pdv": pdv,
+            "rzv": (row[1] if len(row) > 1 else "") or "",
+            "city": (row[2] if len(row) > 2 else "") or "",
+            "sales": int(round(vendite or 0)),
+        })
+    rows.sort(key=lambda x: (-x["sales"], x["pdv"]))
+    return {
+        "file_name": path.name,
+        "updated_at": updated_at,
+        "rows": rows
+    }
 
 
 def pct(cur, prev):
@@ -336,7 +370,7 @@ def build_export_reports(base_dir, current_rows, current_week):
     return manifest
 
 
-def build_data_for_html(current_rows, hist, summary, export_manifest, file_utili, current_week, current_year):
+def build_data_for_html(current_rows, hist, summary, export_manifest, file_utili, current_week, current_year, gara_live=None):
     data_rows=[]
     hist_map={}
     for r in current_rows:
@@ -423,14 +457,8 @@ def build_data_for_html(current_rows, hist, summary, export_manifest, file_utili
         "history": hist_map,
         "export_manifest": export_manifest,
         "file_utili": file_utili,
-        "gare_pdv":[{
-            "title":"Incentivo Family Base · 15 aprile - 4 maggio 2026",
-            "items":[
-                "Con 15 apparati Family Base venduti nel periodo: 15 € per ogni primo apparato venduto e 15 € per ogni Twin venduto dal 15 aprile.",
-                "Se superi 30 apparati Family Base nel periodo: premio EXTRA di 1.000 €.",
-                "Periodo valido: dal 15 aprile al 4 maggio 2026."
-            ]
-        }],
+        "gara_live": gara_live,
+        "gare_pdv":[],
         "gare_agenti":[]
     }
     return data
@@ -731,9 +759,34 @@ def main():
     os.makedirs(os.path.join(out_dir, "files"), exist_ok=True)
     export_manifest = build_export_reports(out_dir, current, current_yearweek[1])
     file_utili = copy_file_utili(out_dir)
+    gara_live = load_live_gara()
 
-    data = build_data_for_html(current, hist, summary, export_manifest, file_utili, current_yearweek[1], current_yearweek[0])
-    data["gare_pdv"] = config.get("gare_pdv", [])
+    data = build_data_for_html(current, hist, summary, export_manifest, file_utili, current_yearweek[1], current_yearweek[0], gara_live)
+    data["gare_pdv"] = list(config.get("gare_pdv", []))
+    if gara_live and gara_live.get("rows"):
+        live_rows = []
+        row_map = {r["pdv"]: r for r in current}
+        for i, gr in enumerate(gara_live["rows"], start=1):
+            base = row_map.get(gr["pdv"], {})
+            live_rows.append({
+                "rank": i,
+                "pdv": gr["pdv"],
+                "city": base.get("citta") or gr.get("city",""),
+                "agent": base.get("agente",""),
+                "cr": base.get("cr",""),
+                "rzv": base.get("rzv") or gr.get("rzv",""),
+                "sales": gr["sales"]
+            })
+        data["gare_pdv"].insert(0, {
+            "title": "Gara Family Base · andamento attuale",
+            "updated_at": gara_live.get("updated_at",""),
+            "file_name": gara_live.get("file_name",""),
+            "items": [
+                "Aggiornamento automatico dal file gara caricato nella cartella input/gare.",
+                "Il numero indica a quante vendite è il PDV alla data del file."
+            ],
+            "table": live_rows
+        })
     data["gare_agenti"] = config.get("gare_agenti", [])
 
     html_path = os.path.join(out_dir, "Telepass_ENI_sito_v6.html")
