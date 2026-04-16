@@ -296,6 +296,16 @@ function showPage(page, btn){
   if(page==='gare-agenti') renderGare('gareAgentiWrap', APP.gare_agenti, 'Nessuna gara in corso');
   if(page==='file-utili') renderFiles();
 }
+function getFilteredRowsForViews(){
+  return withPreset(getBaseRows());
+}
+function filterGaraRows(rows){
+  const base = getFilteredRowsForViews();
+  const allowed = new Set(base.map(r => String(r.pdv).padStart(5,'0')));
+  return (rows||[])
+    .filter(r => allowed.has(String(r.pdv||'').padStart(5,'0')))
+    .map((r, idx) => ({...r, filtered_rank: idx + 1}));
+}
 function renderGare(targetId, items, emptyText){
   const wrap=document.getElementById(targetId);
   if(!items || !items.length){ wrap.innerHTML = `<div class="empty">${emptyText}</div>`; return; }
@@ -304,14 +314,16 @@ function renderGare(targetId, items, emptyText){
     if(g.updated_at) meta.push(`Aggiornato al ${escapeHtml(g.updated_at)}`);
     if(g.file_name) meta.push(escapeHtml(g.file_name));
     const listHtml = (g.items||[]).length ? `<ul>${(g.items||[]).map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul>` : '';
+    const tableRows = filterGaraRows(g.table||[]);
+    const tableInfo = (g.table && g.table.length) ? `<div class="muted" style="margin:8px 0 10px 0">PDV mostrati con i filtri attivi: <b>${fmtNum(tableRows.length)}</b> su <b>${fmtNum((g.table||[]).length)}</b></div>` : '';
     const tableHtml = (g.table && g.table.length) ? `
       <div class="list-wrap" style="margin-top:12px">
         <table style="min-width:920px">
           <thead><tr><th class="num">#</th><th>PDV</th><th>Città</th><th>Agente</th><th>CR</th><th>RZV</th><th class="num">Vendite gara</th></tr></thead>
-          <tbody>${g.table.map(r=>`<tr><td class="num">${fmtNum(r.rank)}</td><td><b>${escapeHtml(r.pdv)}</b></td><td>${escapeHtml(r.city||'')}</td><td>${escapeHtml(r.agent||'')}</td><td>${escapeHtml(r.cr||'')}</td><td>${escapeHtml(r.rzv||'')}</td><td class="num"><b>${fmtNum(r.sales)}</b></td></tr>`).join('')}</tbody>
+          <tbody>${tableRows.length ? tableRows.map(r=>`<tr><td class="num">${fmtNum(r.filtered_rank)}</td><td><b>${escapeHtml(r.pdv)}</b></td><td>${escapeHtml(r.city||'')}</td><td>${escapeHtml(r.agent||'')}</td><td>${escapeHtml(r.cr||'')}</td><td>${escapeHtml(r.rzv||'')}</td><td class="num"><b>${fmtNum(r.sales)}</b></td></tr>`).join('') : `<tr><td colspan="7" style="text-align:center;padding:18px;font-weight:800">Nessun PDV trovato con i filtri attivi.</td></tr>`}</tbody>
         </table>
       </div>` : '';
-    return `<div class="card"><h3>${escapeHtml(g.title)}</h3>${meta.length?`<div class="muted" style="margin:6px 0 10px 0">${meta.join(' · ')}</div>`:''}${listHtml}${tableHtml}</div>`;
+    return `<div class="card"><h3>${escapeHtml(g.title)}</h3>${meta.length?`<div class="muted" style="margin:6px 0 10px 0">${meta.join(' · ')}</div>`:''}${listHtml}${tableInfo}${tableHtml}</div>`;
   }).join('');
 }
 function renderFiles(){
@@ -612,7 +624,12 @@ function refreshAll(){
   document.getElementById('agentFilter').dataset.current = document.getElementById('agentFilter').value;
   document.getElementById('crFilter').dataset.current = document.getElementById('crFilter').value;
   document.getElementById('rzvFilter').dataset.current = document.getElementById('rzvFilter').value;
-  renderHome(); renderList();
+  const activePageEl = document.querySelector('.page.active');
+  const activePage = activePageEl ? activePageEl.id.replace('page-','') : 'home';
+  renderHome();
+  renderList();
+  renderGare('garePdvWrap', APP.gare_pdv, 'Nessuna gara in corso');
+  renderGare('gareAgentiWrap', APP.gare_agenti, 'Nessuna gara in corso');
   const hasFilter = Boolean(
     (document.getElementById('searchText').value || '').trim() ||
     document.getElementById('agentFilter').value ||
@@ -621,6 +638,9 @@ function refreshAll(){
     document.getElementById('statusFilter').value ||
     currentPreset !== 'all'
   );
+  if(activePage==='gare-pdv' || activePage==='gare-agenti' || activePage==='file-utili' || activePage==='detail'){
+    return;
+  }
   if(hasFilter){
     showPage('classifica');
   }
