@@ -306,6 +306,119 @@ function filterGaraRows(rows){
     .filter(r => allowed.has(String(r.pdv||'').padStart(5,'0')))
     .map((r, idx) => ({...r, filtered_rank: idx + 1}));
 }
+
+function getActivePageName(){
+  const active = document.querySelector('.page.active');
+  return active ? active.id.replace('page-','') : 'home';
+}
+function getVisibleGaraExports(){
+  const page = getActivePageName();
+  const source = page==='gare-pdv' ? (APP.gare_pdv||[]) : page==='gare-agenti' ? (APP.gare_agenti||[]) : null;
+  if(!source) return [];
+  return source.map(g => ({
+    title: g.title || (page==='gare-pdv' ? 'Gara PDV' : 'Gara agenti'),
+    updated_at: g.updated_at || '',
+    file_name: g.file_name || '',
+    rows: filterGaraRows(g.table || [])
+  })).filter(g => g.rows && g.rows.length);
+}
+function downloadGaraExcel(){
+  const groups = getVisibleGaraExports();
+  const page = getActivePageName();
+  const pageLabel = page==='gare-agenti' ? 'Gare agenti' : 'Gare PDV';
+  const filterBits = [];
+  const agent = document.getElementById('agentFilter').value;
+  const cr = document.getElementById('crFilter').value;
+  const rzv = document.getElementById('rzvFilter').value;
+  const search = (document.getElementById('searchText').value || '').trim();
+  if(agent) filterBits.push('Agente: ' + agent);
+  if(cr) filterBits.push('CR: ' + cr);
+  if(rzv) filterBits.push('RZV: ' + rzv);
+  if(search) filterBits.push('Ricerca: ' + search);
+  const rowsHtml = groups.length ? groups.map(g => g.rows.map(r=>`<tr>
+      <td>${escapeHtml(g.title)}</td>
+      <td>${escapeHtml(g.updated_at || '')}</td>
+      <td>${fmtNum(r.filtered_rank)}</td>
+      <td>${escapeHtml(r.pdv)}</td>
+      <td>${escapeHtml(r.city || '')}</td>
+      <td>${escapeHtml(r.agent || '')}</td>
+      <td>${escapeHtml(r.cr || '')}</td>
+      <td>${escapeHtml(r.rzv || '')}</td>
+      <td>${fmtNum(r.sales)}</td>
+    </tr>`).join('')).join('') : `<tr><td colspan="9">Nessun PDV trovato con i filtri attivi.</td></tr>`;
+  const html = `
+  <html xmlns:o="urn:schemas-microsoft-com:office:office"
+        xmlns:x="urn:schemas-microsoft-com:office:excel"
+        xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8"></head>
+    <body>
+      <table border="1">
+        <tr><th colspan="9">${pageLabel}</th></tr>
+        <tr><td colspan="9">${escapeHtml(filterBits.length ? filterBits.join(' · ') : 'Nessun filtro attivo')}</td></tr>
+        <tr><th>Gara</th><th>Aggiornato al</th><th>#</th><th>PDV</th><th>Città</th><th>Agente</th><th>CR</th><th>RZV</th><th>Vendite gara</th></tr>
+        ${rowsHtml}
+      </table>
+    </body>
+  </html>`;
+  const blob = new Blob([html], {type:'application/vnd.ms-excel'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${pageLabel.replace(/[^a-z0-9]+/gi,'_')}.xls`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+function openGaraPdf(){
+  const groups = getVisibleGaraExports();
+  const page = getActivePageName();
+  const pageLabel = page==='gare-agenti' ? 'Gare agenti' : 'Gare PDV';
+  const filterBits = [];
+  const agent = document.getElementById('agentFilter').value;
+  const cr = document.getElementById('crFilter').value;
+  const rzv = document.getElementById('rzvFilter').value;
+  const search = (document.getElementById('searchText').value || '').trim();
+  if(agent) filterBits.push('Agente: ' + agent);
+  if(cr) filterBits.push('CR: ' + cr);
+  if(rzv) filterBits.push('RZV: ' + rzv);
+  if(search) filterBits.push('Ricerca: ' + search);
+  const sections = groups.length ? groups.map(g => `
+    <div style="margin:0 0 18px 0;page-break-inside:avoid">
+      <div style="font-size:18px;font-weight:900;margin-bottom:4px">${escapeHtml(g.title)}</div>
+      <div style="color:#5d6b82;margin-bottom:8px">${escapeHtml(g.updated_at ? 'Aggiornato al ' + g.updated_at : '')}${g.file_name ? ' · ' + escapeHtml(g.file_name) : ''}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr>
+          <th style="text-align:left;border-bottom:1px solid #cfd9e8;padding:6px">#</th>
+          <th style="text-align:left;border-bottom:1px solid #cfd9e8;padding:6px">PDV</th>
+          <th style="text-align:left;border-bottom:1px solid #cfd9e8;padding:6px">Città</th>
+          <th style="text-align:left;border-bottom:1px solid #cfd9e8;padding:6px">Agente</th>
+          <th style="text-align:left;border-bottom:1px solid #cfd9e8;padding:6px">CR</th>
+          <th style="text-align:left;border-bottom:1px solid #cfd9e8;padding:6px">RZV</th>
+          <th style="text-align:right;border-bottom:1px solid #cfd9e8;padding:6px">Vendite gara</th>
+        </tr></thead>
+        <tbody>${g.rows.length ? g.rows.map(r=>`<tr>
+          <td style="padding:5px;border-bottom:1px solid #edf2f8">${fmtNum(r.filtered_rank)}</td>
+          <td style="padding:5px;border-bottom:1px solid #edf2f8"><b>${escapeHtml(r.pdv)}</b></td>
+          <td style="padding:5px;border-bottom:1px solid #edf2f8">${escapeHtml(r.city || '')}</td>
+          <td style="padding:5px;border-bottom:1px solid #edf2f8">${escapeHtml(r.agent || '')}</td>
+          <td style="padding:5px;border-bottom:1px solid #edf2f8">${escapeHtml(r.cr || '')}</td>
+          <td style="padding:5px;border-bottom:1px solid #edf2f8">${escapeHtml(r.rzv || '')}</td>
+          <td style="padding:5px;border-bottom:1px solid #edf2f8;text-align:right"><b>${fmtNum(r.sales)}</b></td>
+        </tr>`).join('') : `<tr><td colspan="7" style="padding:10px;text-align:center">Nessun PDV trovato con i filtri attivi.</td></tr>`}</tbody>
+      </table>
+    </div>`).join('') : `<div style="padding:20px;border:1px solid #d7dfeb;border-radius:16px">Nessun PDV trovato con i filtri attivi.</div>`;
+  const win=window.open('', '_blank');
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(pageLabel)}</title><style>
+    body{font-family:system-ui,Arial,sans-serif;background:#fff;color:#10243e;padding:20px}
+    h1{font-size:24px;margin:0 0 6px 0} .muted{color:#5d6b82}
+    @page{size:A4 landscape;margin:10mm}
+  </style></head><body>
+    <h1>${escapeHtml(pageLabel)}</h1>
+    <div class="muted">${escapeHtml(filterBits.length ? filterBits.join(' · ') : 'Nessun filtro attivo')}</div>
+    <div class="muted" style="margin:4px 0 16px 0">Generato il ${escapeHtml(APP.meta.generated_at)}</div>
+    ${sections}
+  </body></html>`;
+  win.document.write(html);
+  win.document.close();
+}
 function renderGare(targetId, items, emptyText){
   const wrap=document.getElementById(targetId);
   if(!items || !items.length){ wrap.innerHTML = `<div class="empty">${emptyText}</div>`; return; }
@@ -541,6 +654,11 @@ function downloadCurrentRowsAsExcel(){
   setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
 }
 function openExcelReport(){
+  const activePage = getActivePageName();
+  if(activePage==='gare-pdv' || activePage==='gare-agenti'){
+    downloadGaraExcel();
+    return;
+  }
   const key=exportKey();
   if(key && EXPORTS[key]){
     window.open(EXPORTS[key].path, '_blank');
@@ -567,6 +685,11 @@ function pdfCard(r){
   </div>`;
 }
 function openPdfReport(){
+  const activePage = getActivePageName();
+  if(activePage==='gare-pdv' || activePage==='gare-agenti'){
+    openGaraPdf();
+    return;
+  }
   const rows=currentRows.length ? currentRows : withPreset(getBaseRows());
   const win=window.open('', '_blank');
   const title=`Report Telepass ENI · ${presetTitle()} · ${rows.length} PDV`;
