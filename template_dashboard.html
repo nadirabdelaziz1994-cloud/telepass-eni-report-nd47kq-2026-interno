@@ -122,7 +122,7 @@ td.num,th.num{text-align:right}
         <button class="btn light" onclick="openExcelReport()">Apri Excel</button>
         <button class="btn light" onclick="openPdfReport()">Stampa / PDF</button>
       </div>
-      <div class="export-note">Apri Excel: CSV vero senza errori · se scegli i grafici scarica un report HTML pronto da condividere.</div>
+      <div class="export-note">Apri Excel: CSV vero senza errori.</div>
     </div>
   </div>
 
@@ -552,27 +552,6 @@ function downloadFilteredCustomReportCsv(){
   downloadCsv('custom_report_filtrato.csv', ['#','PDV','Città','Agente','CR','RZV',...(rep.columns||[]),'Totale'], customReportExportRows());
 }
 function openExcelReport(){
-  const wantCharts = confirm('Vuoi includere i grafici? OK = report con grafici (HTML), Annulla = CSV per Excel.');
-  if(wantCharts){
-    if(activePage()==='pdv' && selectedPdv){
-      const r = pdvObject();
-      downloadHtmlFile(`pdv_${selectedPdv}_con_grafici.html`, buildChartsHtmlForRows([r], `PDV ${r.pdv}`));
-      return;
-    }
-    if(activePage()==='gare-pdv' && APP.custom_report){
-      const rep=APP.custom_report;
-      const rows=customReportExportRows();
-      const headers=['#','PDV','Città','Agente','CR','RZV',...((rep&&rep.columns)||[]),'Totale'];
-      const notes=(APP.gare_pdv||[]).map(g=>`<div style="border:1px solid #d7dfeb;border-radius:12px;padding:12px;margin-bottom:10px"><h3 style="margin:0 0 8px 0;text-align:left">${esc(g.title)}</h3><ul>${(g.items||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('');
-      const html=`<html><head><meta charset="utf-8"><title>Gare PDV</title><style>body{font-family:system-ui,Arial,sans-serif;padding:20px;color:#10243e}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d7dfeb;padding:6px 8px;font-size:12px}th{background:#eef4fb}</style></head><body><h1>Gare PDV filtrate</h1>${notes}${rep?rowsToHtmlTable(headers,rows):'<p>Nessun custom report disponibile.</p>'}</body></html>`;
-      downloadHtmlFile('gare_pdv_filtrate_con_tabella.html', html);
-      return;
-    }
-    const rows = withPreset(getBaseRows());
-    downloadHtmlFile('report_con_grafici.html', buildChartsHtmlForRows(rows, presetTitle()));
-    return;
-  }
-
   if(activePage()==='gare-pdv' && APP.custom_report){
     downloadFilteredCustomReportCsv(); return;
   }
@@ -653,6 +632,94 @@ function pdvPrintHtml(r, withCharts){
   </div>`;
 }
 
+
+function recentBarSvgCompact(title, rows, key){
+  const vals = rows.map(r=>Number(r[key]||0));
+  const labels = rows.map(r=>`W${String(r.week).padStart(2,'0')}`);
+  const max = Math.max(...vals, 1);
+  const bw=30, gap=10, left=22, height=58, width=left + vals.length*(bw+gap);
+  let bars='';
+  vals.forEach((v,i)=>{
+    const h = v/max*height, x=left+i*(bw+gap), y=height-h+10;
+    bars += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="6" fill="#1f6bff" opacity=".88"></rect>
+             <text x="${x+bw/2}" y="${height+22}" text-anchor="middle" font-size="9">${labels[i]}</text>
+             <text x="${x+bw/2}" y="${Math.max(18,y-4)}" text-anchor="middle" font-size="9">${v}</text>`;
+  });
+  return `<div style="border:1px solid #d7dfeb;border-radius:10px;padding:8px"><div style="font-weight:800;font-size:11px;margin-bottom:4px">${esc(title)}</div><svg width="100%" viewBox="0 0 ${width+12} ${height+30}">${bars}</svg></div>`;
+}
+
+function singlePdvPrintCompactHtml(r, withCharts){
+  const hist = (HISTORY[r.pdv]||[]);
+  const recent = hist.slice(-4);
+  return `<html><head><meta charset="utf-8"><title>${esc(r.pdv)}</title><style>
+    @page{size:A4 portrait;margin:8mm}
+    body{font-family:system-ui,Arial,sans-serif;color:#10243e;margin:0}
+    .sheet{border:1px solid #d7dfeb;border-radius:14px;padding:12px}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .title{font-size:21px;font-weight:900}
+    .muted{color:#5d6b82;font-size:12px;line-height:1.3}
+    .sub{margin-top:6px;font-size:13px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+    .box{border:1px solid #d7dfeb;border-radius:10px;padding:10px}
+    .k{font-size:11px;font-weight:800;color:#334864}
+    .v{font-size:15px;font-weight:900;margin-top:2px}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+    .charts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .note{margin-top:10px;border:1px solid #d7dfeb;border-radius:10px;padding:9px 10px;font-size:12px}
+    table{width:100%;border-collapse:collapse}
+    td{padding:4px 0;border-bottom:1px solid #edf1f7;font-size:12px}
+    .badge{display:inline-block;border-radius:999px;padding:3px 8px;font-weight:800;font-size:10px}
+    .badge.bene{background:#e8f7ec;color:#138a36}
+    .badge.da-seguire{background:#fff4e5;color:#b4690e}
+    .badge.male{background:#fdeceb;color:#c62828}
+  </style></head><body>
+    <div class="sheet">
+      <div class="header">
+        <div>
+          <div class="title">${esc(r.pdv)} · ${esc(r.city)}</div>
+          <div class="muted">${esc(r.address||'')}</div>
+          <div class="sub"><b>Agente:</b> ${esc(r.agent)} · <b>CR:</b> ${esc(r.cr)} · <b>RZV:</b> ${esc(r.rzv)}</div>
+        </div>
+        <div>${badge(r.status)}</div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <div style="font-weight:900;margin-bottom:6px">Vendite</div>
+          <div class="two">
+            <div class="box"><div class="k">Vendite 2026 vs 2025</div><div class="v">${fmtNum(r.ytd?.sales_2026)} vs ${fmtNum(r.ytd?.sales_2025)}</div><div class="muted">${fmtChangePct(r.ytd?.sales_pct)}</div></div>
+            <div class="box"><div class="k">Passo recupero</div><div class="v">${(r.ytd?.sales_2026||0) >= (r.ytd?.sales_2025||0) ? 'In linea col 2025' : `${fmtNum(r.ytd?.recovery_week_need)} / settimana`}</div><div class="muted">Media attuale: ${fmtNum(r.ytd?.current_weekly_avg)}</div></div>
+          </div>
+          <div class="three">
+            <div class="box"><div class="k">Prospect</div><div class="v">${fmtNum(r.ytd?.prospect)}</div></div>
+            <div class="box"><div class="k">Twin</div><div class="v">${fmtNum(r.ytd?.twin)}</div></div>
+            <div class="box"><div class="k">Business</div><div class="v">${fmtNum(r.ytd?.business)}</div></div>
+          </div>
+        </div>
+
+        <div>
+          <table>
+            <tr><td><b>Ass. 2026</b></td><td>${fmtNum(r.ytd?.assist_2026)}</td></tr>
+            <tr><td><b>Ass. 2025</b></td><td>${fmtNum(r.ytd?.assist_2025)}</td></tr>
+            <tr><td><b>% Ass.</b></td><td>${fmtRate(r.ytd?.attach_rate)}</td></tr>
+            <tr><td><b>Sost. anno</b></td><td>${fmtNum(r.ytd?.sost_family)}</td></tr>
+            <tr><td><b>UP EU anno</b></td><td>${fmtNum(r.ytd?.up_eu)}</td></tr>
+            <tr><td><b>% UP EU</b></td><td>${fmtRate(r.ytd?.up_eu_rate)}</td></tr>
+            <tr><td><b>Ass. settimana</b></td><td>${fmtNum(r.latest?.assist)} (W${String(r.latest_week||0).padStart(2,'0')})</td></tr>
+            <tr><td><b>Sost. settimana</b></td><td>${fmtNum(r.latest?.sost_family)} (W${String(r.latest_week||0).padStart(2,'0')})</td></tr>
+            <tr><td><b>UP EU settimana</b></td><td>${fmtNum(r.latest?.up_eu)} (W${String(r.latest_week||0).padStart(2,'0')})</td></tr>
+          </table>
+        </div>
+      </div>
+
+      ${withCharts ? `<div class="charts">${recentBarSvgCompact('Ultime settimane · vendite', recent, 'sales_total')}${recentBarSvgCompact('Ultime settimane · prospect', recent, 'prospect')}</div>` : ''}
+
+      <div class="note"><b>Commento:</b> ${(r.notes||[]).map(esc).join(' · ')}</div>
+    </div>
+  </body></html>`;
+}
+
 function openPdfReport(){
   const page = activePage();
 
@@ -669,7 +736,7 @@ function openPdfReport(){
 
   if(page==='pdv' && selectedPdv){
     const r=pdvObject();
-    const html=`<html><head><meta charset="utf-8"><title>${esc(r.pdv)}</title><style>body{font-family:system-ui,Arial,sans-serif;padding:20px;color:#10243e}table td{padding:4px 6px;border-bottom:1px solid #e6edf7}</style></head><body>${pdvPrintHtml(r,withCharts)}</body></html>`;
+    const html = singlePdvPrintCompactHtml(r, withCharts);
     const win=window.open('','_blank'); win.document.write(html); win.document.close(); win.print(); return;
   }
 
