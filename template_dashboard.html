@@ -63,12 +63,12 @@ td.num,th.num{text-align:right}
 .metric-card.tone-good{border-left:5px solid var(--green)}
 .metric-card.tone-warn{border-left:5px solid var(--orange)}
 .metric-card.tone-bad{border-left:5px solid var(--red)}
-.metric-card h4{margin:0 0 6px 0;font-size:12px;line-height:1.15}
-.metric-big{font-size:17px;font-weight:900;line-height:1.18}
+.metric-card h4{margin:0 0 6px 0;font-size:12px;line-height:1.2;min-height:30px}
+.metric-big{font-size:15px;font-weight:900;line-height:1.22;word-break:break-word}
 .metric-sub{margin-top:4px;color:var(--muted);font-size:11px;font-weight:700}
 .metric-note{margin-top:4px;color:var(--muted);font-size:11px}
 .detail-page .header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
-.detail-title{font-size:22px;font-weight:900;line-height:1.1}
+.detail-title{font-size:21px;font-weight:900;line-height:1.1}
 .subline{font-size:14px;line-height:1.35;margin-top:6px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .week-table{margin-top:8px;border:1px solid var(--line);border-radius:14px;overflow:auto;background:#fff;box-shadow:var(--shadow)}
@@ -78,13 +78,6 @@ td.num,th.num{text-align:right}
 .chip{background:#f1f5fb;border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-weight:700;font-size:12px}
 .file-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .empty{padding:14px;border:1px dashed var(--line);border-radius:14px;background:#fff}
-.login-gate{position:fixed;inset:0;background:rgba(15,39,70,.72);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px}
-.login-gate.show{display:flex}
-.login-box{width:100%;max-width:420px;background:#fff;border-radius:18px;padding:22px;border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,.2)}
-.login-box h2{margin:0 0 10px;font-size:24px}
-.login-box p{margin:0 0 14px;color:var(--muted)}
-.login-box input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);font-size:15px;margin-top:8px}
-.login-error{margin-top:10px;color:#c62828;font-weight:700;font-size:13px;min-height:18px}
 .export-note{font-size:12px;color:var(--muted);margin-top:8px;text-align:right}
 @media (max-width:900px){
   .metric-row,.metric-row.ass,.metric-row.sost,.quick-grid,.home-top-grid,.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -92,17 +85,6 @@ td.num,th.num{text-align:right}
 </style>
 </head>
 <body>
-<div id="loginGate" class="login-gate">
-  <div class="login-box">
-    <h2>Accesso area report</h2>
-    <p>Login dimostrativo. Utente: <b>MyWorld</b> · Password: <b>123456</b><br><span class="small-muted">È solo un blocco fittizio lato pagina, non una protezione reale.</span></p>
-    <input id="loginUser" placeholder="Nome utente">
-    <input id="loginPass" type="password" placeholder="Password">
-    <div id="loginError" class="login-error"></div>
-    <button class="btn" style="width:100%;margin-top:8px" onclick="doLogin()">Entra</button>
-  </div>
-</div>
-
 <div class="topbar">
   <div class="wrap">
     <div class="brand">Telepass ENI</div>
@@ -138,7 +120,7 @@ td.num,th.num{text-align:right}
         <button class="btn light" onclick="openExcelReport()">Apri Excel</button>
         <button class="btn light" onclick="openPdfReport()">Stampa / PDF</button>
       </div>
-      <div class="export-note">Excel ora esporta in CSV vero, leggibile da Excel senza errore formato.</div>
+      <div class="export-note">Apri Excel: CSV vero senza errori · se scegli i grafici scarica un report HTML pronto da condividere.</div>
     </div>
   </div>
 
@@ -220,7 +202,7 @@ let selectedPdv = null;
 
 function fmtNum(v){ if(v===null || v===undefined || v==='') return '-'; return Number(v).toLocaleString('it-IT'); }
 function fmtChangePct(v){ if(v===null || v===undefined || v==='') return '-'; return `${Number(v).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`; }
-function fmtRate(v){ if(v===null || v===undefined || v==='') return '-'; return `${(Number(v)*100).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`; }
+function fmtRate(v){ if(v===null || v===undefined || v==='') return '-'; return `${Number(v).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`; }
 function esc(t){ return String(t ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
 function badge(s){ const c=(s||'').toLowerCase().replaceAll(' ','-'); return `<span class="badge ${c}">${esc(s||'-')}</span>`; }
 function toneFromPct(pct, good=0, warn=-5){ if(pct===null || pct===undefined) return ''; if(pct>=good) return 'tone-good'; if(pct<=warn) return 'tone-bad'; return 'tone-warn'; }
@@ -368,8 +350,8 @@ function renderSinglePdv(){
   const wrap = document.getElementById('pdvPageWrap');
   if(!r){ wrap.innerHTML='<div class="empty">Nessun PDV selezionato.</div>'; return; }
   const salesRecoveryText = (r.ytd?.sales_2026||0) >= (r.ytd?.sales_2025||0)
-    ? 'Passo già in linea col 2025'
-    : `Per recuperare ${fmtNum(r.ytd?.recovery_week_need)} vendite a settimana`;
+    ? 'In linea col 2025'
+    : `${fmtNum(r.ytd?.recovery_week_need)} / settimana`;
 
   wrap.innerHTML = `
     <div class="card">
@@ -395,13 +377,13 @@ function renderSinglePdv(){
             <div class="metric-sub">${fmtChangePct(r.ytd?.sales_pct)}</div>
           </div>
           <div class="metric-card ${toneRecovery(r.ytd?.recovery_week_need,r.ytd?.current_weekly_avg)}">
-            <h4>Passo per recuperare</h4>
+            <h4>Passo<br>recupero</h4>
             <div class="metric-big">${salesRecoveryText}</div>
             <div class="metric-sub">Media attuale: ${fmtNum(r.ytd?.current_weekly_avg)}</div>
           </div>
           <div class="metric-card"><h4>Prospect da inizio anno</h4><div class="metric-big">${fmtNum(r.ytd?.prospect)}</div></div>
           <div class="metric-card"><h4>Twin da inizio anno</h4><div class="metric-big">${fmtNum(r.ytd?.twin)}</div></div>
-          <div class="metric-card"><h4>Business da inizio anno</h4><div class="metric-big">${fmtNum(r.ytd?.business)}</div></div>
+          <div class="metric-card"><h4>Business da<br>inizio anno</h4><div class="metric-big">${fmtNum(r.ytd?.business)}</div></div>
         </div>
       </div>
 
@@ -418,8 +400,8 @@ function renderSinglePdv(){
             <div class="metric-big">${fmtNum(r.latest?.assist)}</div>
             <div class="metric-sub">W${String(r.latest_week||0).padStart(2,'0')}</div>
           </div>
-          <div class="metric-card ${toneFromRate(r.ytd?.attach_rate,0.40,0.25)}">
-            <h4>Assistenza sulle operazioni</h4>
+          <div class="metric-card ${toneFromRate(r.ytd?.attach_rate,40,25)}">
+            <h4>Assistenza sulle<br>operazioni</h4>
             <div class="metric-big">${fmtRate(r.ytd?.attach_rate)}</div>
             <div class="metric-sub">Target buono 40%+</div>
           </div>
@@ -439,8 +421,8 @@ function renderSinglePdv(){
             <div class="metric-big">${fmtNum(r.latest?.up_eu)}</div>
             <div class="metric-sub">W${String(r.latest_week||0).padStart(2,'0')}</div>
           </div>
-          <div class="metric-card ${toneFromRate(r.ytd?.up_eu_rate,0.30,0.15)}">
-            <h4>Anno: sostituzioni vs UP EU</h4>
+          <div class="metric-card ${toneFromRate(r.ytd?.up_eu_rate,30,15)}">
+            <h4>Anno: sostituzioni<br>vs UP EU</h4>
             <div class="metric-big">${fmtNum(r.ytd?.sost_family)} vs ${fmtNum(r.ytd?.up_eu)}</div>
             <div class="metric-sub">${fmtRate(r.ytd?.up_eu_rate)} · soglia ottimale 30%+</div>
           </div>
@@ -524,8 +506,8 @@ function listExportRows(){
     r.rank_sales, r.pdv, r.city, r.agent, r.cr, r.rzv,
     r.ytd?.sales_2026||0, r.ytd?.sales_2025||0, r.ytd?.prospect||0, r.ytd?.twin||0, r.ytd?.business||0,
     r.ytd?.assist_2026||0, r.ytd?.assist_2025||0, r.ytd?.sost_family||0, r.ytd?.up_eu||0,
-    r.ytd?.attach_rate==null ? '' : (r.ytd.attach_rate*100).toFixed(1)+'%',
-    r.ytd?.up_eu_rate==null ? '' : (r.ytd.up_eu_rate*100).toFixed(1)+'%',
+    r.ytd?.attach_rate==null ? '' : Number(r.ytd.attach_rate).toFixed(1)+'%',
+    r.ytd?.up_eu_rate==null ? '' : Number(r.ytd.up_eu_rate).toFixed(1)+'%',
     r.latest?.sales_total||0, r.latest?.prospect||0, r.latest?.assist||0, r.status||''
   ]);
 }
@@ -541,8 +523,8 @@ function singlePdvSummaryRows(){
     r.pdv, r.city, r.agent, r.cr, r.rzv,
     r.ytd?.sales_2026||0, r.ytd?.sales_2025||0, r.ytd?.prospect||0, r.ytd?.twin||0, r.ytd?.business||0,
     r.ytd?.assist_2026||0, r.ytd?.assist_2025||0, r.ytd?.sost_family||0, r.ytd?.up_eu||0,
-    r.ytd?.attach_rate==null ? '' : (r.ytd.attach_rate*100).toFixed(1)+'%',
-    r.ytd?.up_eu_rate==null ? '' : (r.ytd.up_eu_rate*100).toFixed(1)+'%',
+    r.ytd?.attach_rate==null ? '' : Number(r.ytd.attach_rate).toFixed(1)+'%',
+    r.ytd?.up_eu_rate==null ? '' : Number(r.ytd.up_eu_rate).toFixed(1)+'%',
     r.status||''
   ]];
 }
@@ -552,6 +534,27 @@ function downloadFilteredCustomReportCsv(){
   downloadCsv('custom_report_filtrato.csv', ['#','PDV','Città','Agente','CR','RZV',...(rep.columns||[]),'Totale'], customReportExportRows());
 }
 function openExcelReport(){
+  const wantCharts = confirm('Vuoi includere i grafici? OK = report con grafici (HTML), Annulla = CSV per Excel.');
+  if(wantCharts){
+    if(activePage()==='pdv' && selectedPdv){
+      const r = pdvObject();
+      downloadHtmlFile(`pdv_${selectedPdv}_con_grafici.html`, buildChartsHtmlForRows([r], `PDV ${r.pdv}`));
+      return;
+    }
+    if(activePage()==='gare-pdv' && APP.custom_report){
+      const rep=APP.custom_report;
+      const rows=customReportExportRows();
+      const headers=['#','PDV','Città','Agente','CR','RZV',...((rep&&rep.columns)||[]),'Totale'];
+      const notes=(APP.gare_pdv||[]).map(g=>`<div style="border:1px solid #d7dfeb;border-radius:12px;padding:12px;margin-bottom:10px"><h3 style="margin:0 0 8px 0;text-align:left">${esc(g.title)}</h3><ul>${(g.items||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('');
+      const html=`<html><head><meta charset="utf-8"><title>Gare PDV</title><style>body{font-family:system-ui,Arial,sans-serif;padding:20px;color:#10243e}table{border-collapse:collapse;width:100%}th,td{border:1px solid #d7dfeb;padding:6px 8px;font-size:12px}th{background:#eef4fb}</style></head><body><h1>Gare PDV filtrate</h1>${notes}${rep?rowsToHtmlTable(headers,rows):'<p>Nessun custom report disponibile.</p>'}</body></html>`;
+      downloadHtmlFile('gare_pdv_filtrate_con_tabella.html', html);
+      return;
+    }
+    const rows = withPreset(getBaseRows());
+    downloadHtmlFile('report_con_grafici.html', buildChartsHtmlForRows(rows, presetTitle()));
+    return;
+  }
+
   if(activePage()==='gare-pdv' && APP.custom_report){
     downloadFilteredCustomReportCsv(); return;
   }
@@ -588,6 +591,19 @@ function recentBarSvg(title, rows, key){
   });
   return `<div style="border:1px solid #d7dfeb;border-radius:14px;padding:12px;margin-top:12px"><div style="font-weight:900;margin-bottom:8px">${esc(title)}</div><svg width="100%" viewBox="0 0 ${width+20} ${height+40}">${bars}</svg></div>`;
 }
+
+function downloadHtmlFile(filename, html){
+  const blob = new Blob([html], {type:'text/html;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function buildChartsHtmlForRows(rows, title){
+  return `<html><head><meta charset="utf-8"><title>${esc(title)}</title><style>body{font-family:system-ui,Arial,sans-serif;padding:20px;color:#10243e}.page-break{page-break-after:always}</style></head><body><h1>${esc(title)}</h1>${rows.map((r,i)=>pdvPrintHtml(r,true)+(i<rows.length-1?'<div class="page-break"></div>':'' )).join('')}</body></html>`;
+}
+
 function pdvPrintHtml(r, withCharts){
   const hist = (HISTORY[r.pdv]||[]);
   const recent = hist.slice(-4);
@@ -661,18 +677,6 @@ function refreshAll(){
   if(activePage()==='pdv' && selectedPdv) renderSinglePdv();
 }
 
-function doLogin(){
-  const u=(document.getElementById('loginUser').value||'').trim().toLowerCase();
-  const p=(document.getElementById('loginPass').value||'').trim();
-  if(u==='myworld' && p==='123456'){
-    localStorage.setItem('tp_login_ok','1');
-    document.getElementById('loginGate').classList.remove('show');
-    document.getElementById('loginError').textContent='';
-    return;
-  }
-  document.getElementById('loginError').textContent='Credenziali non corrette.';
-}
-function initLogin(){ if(localStorage.getItem('tp_login_ok')!=='1') document.getElementById('loginGate').classList.add('show'); }
 
 fill('agentFilter','Tutti gli agenti',uniq('agent'));
 fill('crFilter','Tutti i CR',uniq('cr'));
@@ -682,7 +686,6 @@ renderList();
 renderGarePdv();
 renderGare('gareAgentiWrap',APP.gare_agenti,'Nessuna gara in corso');
 renderFiles();
-initLogin();
 </script>
 </body>
 </html>
