@@ -15,6 +15,10 @@ FILE REPORT TROVATI E USATI
 2026/W13 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 13.xlsx
 2026/W14 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 14.xlsx
 
+CUSTOM REPORT
+=============
+Nessun custom report trovato
+
 SETTIMANE MANCANTI
 ==================
 Nessuna settimana mancante nel blocco usato.
