@@ -1,5 +1,8 @@
 from pathlib import Path
+import datetime
+import os
 import re
+import shutil
 import unicodedata
 
 import aggiorna_dashboard as base
@@ -98,10 +101,8 @@ def parse_report_dynamic(path):
         [f"{year-1}/{week_2}", "VENDITE"],
         [f"{year-1}/{week_1}", "VENDITE"],
     ])
-
     c_twin = first_match(["DI CUI TWIN", ["TWIN"]], after=(c_vend_ly or 0))
     c_bus_week = first_match(["DI CUI BUSINESS", ["BUSINESS"]], after=(c_twin or c_vend_ly or 0))
-
     c_ass_week = first_match([
         f"ASS. STRAD. EU VENDITE {year}/{week_2}",
         f"ASS. STRAD. EU VENDITE {year}/{week_1}",
@@ -114,11 +115,9 @@ def parse_report_dynamic(path):
         [f"{year-1}/{week_2}", "ASS", "STRAD"],
         [f"{year-1}/{week_1}", "ASS", "STRAD"],
     ])
-
     c_sost_week = first_match(["SOST. FAMILY", ["SOST", "FAMILY"]], after=(c_ass_ly or c_ass_week or 0))
     c_up_eu_week = first_match(["UPSELL. EU", ["UPSELL", "EU"], ["UP", "EU"]], after=(c_sost_week or 0))
     c_sost_family_week = c_sost_week
-
     c_tot_sales = first_match([
         f"TOTALE VENDITE TELEPASS {year}",
         [str(year), "TOTALE", "VENDITE", "TELEPASS"],
@@ -131,14 +130,8 @@ def parse_report_dynamic(path):
     ])
     c_tot_twin = first_match(["TOTALE TWIN", ["TOTALE", "TWIN"]], after=(c_tot_sales_prev or c_tot_sales or 0))
     c_tot_bus = first_match(["DI CUI BUSINESS", ["BUSINESS"]], after=(c_tot_twin or c_tot_sales_prev or c_tot_sales or 0))
-    c_tot_ass = first_match([
-        f"TOTALE ASS. STRAD. {year}",
-        [str(year), "TOTALE", "ASS", "STRAD"],
-    ])
-    c_tot_ass_prev = first_match([
-        f"TOTALE ASS. STRAD. {year-1}",
-        [str(year-1), "TOTALE", "ASS", "STRAD"],
-    ])
+    c_tot_ass = first_match([f"TOTALE ASS. STRAD. {year}", [str(year), "TOTALE", "ASS", "STRAD"]])
+    c_tot_ass_prev = first_match([f"TOTALE ASS. STRAD. {year-1}", [str(year-1), "TOTALE", "ASS", "STRAD"]])
     c_tot_sost = first_match(["SOST. FAMILY", ["SOST", "FAMILY"]], after=(c_tot_ass_prev or c_tot_ass or 0))
     c_tot_up_eu = first_match(["UPSELL. EU", ["UPSELL", "EU"], ["UP", "EU"]], after=(c_tot_sost or 0))
     c_tot_sost_family = c_tot_sost
@@ -147,20 +140,16 @@ def parse_report_dynamic(path):
     for row in ws.iter_rows(min_row=5, values_only=True):
         if not row:
             continue
-
         pdv = base.norm_pdv(row[c_pdv - 1] if c_pdv else None)
         if not pdv:
             continue
-
         vend_week = base.safe_num(row[c_vend_week - 1]) if c_vend_week else None
         bus_week = base.safe_num(row[c_bus_week - 1]) if c_bus_week else 0
         if bus_week is not None and (bus_week < 0 or (abs(bus_week - round(bus_week)) > 1e-6 and abs(bus_week) < 1)):
             bus_week = 0
-
         twin_week = base.safe_num(row[c_twin - 1]) if c_twin else None
         if twin_week is not None and twin_week < 0:
             twin_week = 0
-
         recs.append({
             "pdv": pdv,
             "week_year": year,
@@ -203,19 +192,15 @@ def enrich_current(records, config):
         hist[r["pdv"]].append(r)
     for pdv in hist:
         hist[pdv].sort(key=lambda x: (x["week_year"], x["week_num"]))
-
     current_yearweek = max((r["week_year"], r["week_num"]) for r in records)
     current = []
     th = config["thresholds"]
-
     for pdv, arr in hist.items():
         cur = next((x for x in arr if (x["week_year"], x["week_num"]) == current_yearweek), None)
         if not cur:
             continue
-
         cur = cur.copy()
         prev = arr[-2] if len(arr) >= 2 else None
-
         sales_ytd_sum = sum((x.get("vendite_settimana") or 0) for x in arr)
         sales_prev_ytd_sum = sum((x.get("vendite_anno_prec_stessa_sett") or 0) for x in arr)
         assist_ytd_sum = sum((x.get("ass_settimana") or 0) for x in arr)
@@ -226,14 +211,12 @@ def enrich_current(records, config):
         sost_ytd_sum = sum((x.get("sost_settimana") or 0) for x in arr)
         sost_family_ytd_sum = sum((x.get("sost_family_settimana") or 0) for x in arr)
         up_eu_ytd_sum = sum((x.get("upgrade_eu_settimana") or 0) for x in arr)
-
         cur["agente"] = cur.get("agente", "")
         cur["cr"] = cur.get("cr", "")
         cur["rzv"] = cur.get("rzv", "")
         cur["business_ytd_calc"] = business_ytd_sum
         cur["twin_ytd_calc"] = twin_ytd_sum
         cur["prospect_ytd_calc"] = prospect_ytd_sum
-
         cur["tot_vendite_anno"] = _preferred_total(cur.get("tot_vendite_anno"), sales_ytd_sum)
         cur["tot_vendite_anno_prec"] = _preferred_total(cur.get("tot_vendite_anno_prec"), sales_prev_ytd_sum)
         cur["tot_ass_anno"] = _preferred_total(cur.get("tot_ass_anno"), assist_ytd_sum)
@@ -241,7 +224,6 @@ def enrich_current(records, config):
         cur["tot_sost_anno"] = _preferred_total(cur.get("tot_sost_anno"), sost_ytd_sum)
         cur["tot_sost_family_anno"] = _preferred_total(cur.get("tot_sost_family_anno"), sost_family_ytd_sum)
         cur["tot_upgrade_eu_anno"] = _preferred_total(cur.get("tot_upgrade_eu_anno"), up_eu_ytd_sum)
-
         cur["prev_week"] = prev["week_num"] if prev else None
         cur["vendite_week_diff"] = (cur.get("vendite_settimana") or 0) - ((prev or {}).get("vendite_settimana") or 0) if prev else None
         cur["prospect_week_diff"] = (cur.get("prospect_settimana") or 0) - ((prev or {}).get("prospect_settimana") or 0) if prev else None
@@ -250,16 +232,13 @@ def enrich_current(records, config):
         cur["assist_ytd_diff"] = (cur.get("tot_ass_anno") or 0) - (cur.get("tot_ass_anno_prec") or 0)
         cur["sales_ytd_pct"] = base.pct(cur.get("tot_vendite_anno"), cur.get("tot_vendite_anno_prec"))
         cur["assist_ytd_pct"] = base.pct(cur.get("tot_ass_anno"), cur.get("tot_ass_anno_prec"))
-
         ops = (cur.get("tot_vendite_anno") or 0) + (cur.get("tot_sost_family_anno") or 0)
         cur["attach_rate"] = (cur.get("tot_ass_anno") or 0) / ops if ops else None
         cur["up_eu_rate"] = (cur.get("tot_upgrade_eu_anno") or 0) / (cur.get("tot_sost_family_anno") or 0) if (cur.get("tot_sost_family_anno") or 0) else None
-
         remaining = max(52 - cur["week_num"], 1)
         gap = max((cur.get("tot_vendite_anno_prec") or 0) - (cur.get("tot_vendite_anno") or 0), 0)
         cur["sales_recovery_weekly_need"] = gap / remaining if gap > 0 else 0
         cur["current_weekly_avg"] = (cur.get("tot_vendite_anno") or 0) / max(cur["week_num"], 1)
-
         trend = ""
         if len(arr) >= 2 and (arr[-1].get("vendite_settimana") or 0) < (arr[-2].get("vendite_settimana") or 0):
             if len(arr) >= 3 and (arr[-2].get("vendite_settimana") or 0) < (arr[-3].get("vendite_settimana") or 0):
@@ -267,14 +246,12 @@ def enrich_current(records, config):
             else:
                 trend = f"Ultima settimana in calo vs W{arr[-2]['week_num']:02d}"
         cur["trend_note"] = trend
-
         sp = cur["sales_ytd_pct"] if cur["sales_ytd_pct"] is not None else 0
         ap = cur["assist_ytd_pct"] if cur["assist_ytd_pct"] is not None else 0
         sales_bad = sp <= th["sales_bad_pct"] and cur["sales_ytd_diff"] <= -th["sales_bad_abs"]
         sales_warn = sp <= th["sales_warn_pct"] and cur["sales_ytd_diff"] <= -th["sales_warn_abs"]
         assist_bad = ap <= th["assist_bad_pct"] and cur["assist_ytd_diff"] <= -th["assist_bad_abs"]
         assist_warn = ap <= th["assist_warn_pct"] and cur["assist_ytd_diff"] <= -th["assist_warn_abs"]
-
         reasons = []
         if sales_bad or sales_warn:
             reasons.append("Vendite 2026 sotto il 2025")
@@ -284,24 +261,20 @@ def enrich_current(records, config):
             reasons.append(cur["trend_note"])
         if not reasons:
             reasons.append("Andamento regolare")
-
         if sales_bad or (sales_warn and assist_warn):
             stato = "Male"
         elif sales_warn or assist_warn or cur["trend_note"]:
             stato = "Da seguire"
         else:
             stato = "Bene"
-
         cur["stato"] = stato
         cur["motivi"] = reasons
         current.append(cur)
-
     current.sort(key=lambda r: ((r.get("tot_vendite_anno") or 0), (r.get("prospect_ytd_calc") or 0)), reverse=True)
     total = len(current)
     for i, r in enumerate(current, start=1):
         r["rank_all"] = i
         r["rank_text"] = f"{i} su {total}"
-
     return current_yearweek, current, hist
 
 
@@ -315,10 +288,146 @@ def build_html(data):
     return tpl.replace("__DATA_JSON__", base.json.dumps(data, ensure_ascii=False)).replace("__CURRENT_WEEK__", f"{data['meta']['current_week']:02d}")
 
 
+def _find_latest_custom_report(root_dir):
+    folder = Path(root_dir) / "input" / "custom_report"
+    if not folder.exists():
+        return None
+    files = [p for p in folder.rglob("*.xlsx") if not p.name.startswith("~$")]
+    if not files:
+        return None
+    return sorted(files, key=lambda p: p.stat().st_mtime)[-1]
+
+
+def _fmt_custom_col(v):
+    if hasattr(v, "strftime"):
+        return v.strftime("%d/%m")
+    s = str(v or "").strip()
+    m = re.search(r"(\d{1,2})[/-](\d{1,2})", s)
+    if m:
+        return f"{int(m.group(1)):02d}/{int(m.group(2)):02d}"
+    return s
+
+
+def load_custom_report(root_dir, lista_map, anag_map, out_dir):
+    path = _find_latest_custom_report(root_dir)
+    if not path:
+        return None
+    wb = base.openpyxl.load_workbook(path, data_only=True, read_only=True)
+    ws = wb[wb.sheetnames[0]]
+    header = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+    if len(header) < 4:
+        return None
+    dynamic_cols = header[3:-1]
+    date_labels = [_fmt_custom_col(v) for v in dynamic_cols]
+    rows = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        pdv = base.norm_pdv(row[0] if row else None)
+        if not pdv:
+            continue
+        daily = [int(round(base.safe_num(v) or 0)) for v in row[3:-1]]
+        total = int(round(base.safe_num(row[-1]) or sum(daily)))
+        li = lista_map.get(pdv, {})
+        an = anag_map.get(pdv, {})
+        rows.append({
+            "pdv": pdv,
+            "city": (row[2] or li.get("lista_citta") or ""),
+            "rzv": (row[1] or an.get("rzv") or ""),
+            "agent": li.get("agente", "") or "",
+            "cr": an.get("cr", "") or "",
+            "values": daily,
+            "total": total,
+        })
+    rows.sort(key=lambda r: (r["total"], r["values"][-1] if r["values"] else 0), reverse=True)
+    for i, r in enumerate(rows, start=1):
+        r["rank"] = i
+    dest_dir = Path(out_dir) / "files" / "CUSTOM_REPORT"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(path, dest_dir / path.name)
+    return {
+        "title": f"Custom Report · {date_labels[0]} - {date_labels[-1]}" if date_labels else "Custom Report",
+        "source_name": path.name,
+        "source_path": f"files/CUSTOM_REPORT/{path.name}",
+        "updated_at": datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime("%d/%m/%Y %H:%M"),
+        "columns": date_labels,
+        "rows": rows,
+        "summary": {"pdv_count": len(rows), "grand_total": sum(r["total"] for r in rows)},
+    }
+
+
+def main():
+    config = base.load_config()
+    if len(base.sys.argv) >= 5:
+        lista, anag, report_dir, out_dir = base.sys.argv[1:5]
+    else:
+        lista, anag, report_dir, out_dir = base.pick_inputs()
+    base.os.makedirs(out_dir, exist_ok=True)
+    lista_map = base.load_lista(lista)
+    anag_map = base.load_anag(anag)
+    scan = base.scan_report_files(report_dir, year_mode=config.get("year_mode", "latest_year_only"))
+    if not scan["selected_paths"]:
+        raise RuntimeError("Nessun report ENI valido trovato nella cartella selezionata.")
+    records = []
+    for path in scan["selected_paths"]:
+        for r in parse_report_dynamic(path):
+            li = lista_map.get(r["pdv"], {})
+            an = anag_map.get(r["pdv"], {})
+            r["agente"] = li.get("agente", "") or ""
+            r["rzv"] = an.get("rzv", "") or ""
+            r["cr"] = an.get("cr", "") or ""
+            if not r["citta"]:
+                r["citta"] = li.get("lista_citta", "")
+            if not r["indirizzo"]:
+                r["indirizzo"] = li.get("lista_indirizzo", "")
+            records.append(r)
+    ded = {}
+    for r in records:
+        ded[(r["pdv"], r["week_year"], r["week_num"])] = r
+    records = sorted(ded.values(), key=lambda x: (x["week_year"], x["week_num"], x["pdv"]))
+    current_yearweek, current, hist = enrich_current(records, config)
+    summary = base.build_summary(current)
+    base.os.makedirs(base.os.path.join(out_dir, "files"), exist_ok=True)
+    export_manifest = base.build_export_reports(out_dir, current, current_yearweek[1])
+    file_utili = base.copy_file_utili(out_dir)
+    data = base.build_data_for_html(current, hist, summary, export_manifest, file_utili, current_yearweek[1], current_yearweek[0])
+    data["gare_pdv"] = config.get("gare_pdv", [])
+    data["gare_agenti"] = config.get("gare_agenti", [])
+    data["custom_report"] = load_custom_report(base.BASE_DIR, lista_map, anag_map, out_dir)
+    html_path = base.os.path.join(out_dir, "Telepass_ENI_sito_v6.html")
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(build_html(data))
+    master_xlsx = base.os.path.join(out_dir, "Dati_Telepass_ENI_v6.xlsx")
+    base.build_master_workbook(master_xlsx, current, records, {"selected_year": scan["selected_year"], "current_week": current_yearweek[1]})
+    log_path = base.os.path.join(out_dir, "log_file_usati_v6.txt")
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write("FILE REPORT TROVATI E USATI\n")
+        f.write("==========================\n")
+        for p in scan["selected_paths"]:
+            y, w, _ = base.extract_week_year(p)
+            f.write(f"{y}/W{w:02d} -> {p}\n")
+        cp = _find_latest_custom_report(base.BASE_DIR)
+        f.write("\nCUSTOM REPORT\n")
+        f.write("=============\n")
+        f.write((str(cp) if cp else "Nessun custom report trovato") + "\n")
+        f.write("\nSETTIMANE MANCANTI\n")
+        f.write("==================\n")
+        if scan["missing_weeks"]:
+            for y, w in scan["missing_weeks"]:
+                f.write(f"{y}/W{w:02d}\n")
+        else:
+            f.write("Nessuna settimana mancante nel blocco usato.\n")
+        f.write("\nFILE SCARTATI\n")
+        f.write("============\n")
+        for p, reason in scan["skipped"]:
+            f.write(f"{p} -> {reason}\n")
+    print("Creato:", html_path)
+    print("Creato:", master_xlsx)
+    print("Creato:", log_path)
+
+
 base.parse_report_dynamic = parse_report_dynamic
 base.enrich_current = enrich_current
 base.build_html = build_html
 
 
 if __name__ == "__main__":
-    base.main()
+    main()
