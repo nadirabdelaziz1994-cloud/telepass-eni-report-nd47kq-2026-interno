@@ -5,10 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'input/report_settimanali/**'
-      - 'input/custom_report/**'
-      - 'input/lista/**'
-      - 'input/anagrafica/**'
+      - 'input/**'
       - 'FILE_UTILI/**'
       - 'config_dashboard.json'
       - 'template_dashboard.html'
