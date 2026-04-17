@@ -57,6 +57,8 @@ td.num,th.num{text-align:right}
 .badge.da-seguire{background:var(--orangebg);color:var(--orange)}
 .badge.male{background:var(--redbg);color:var(--red)}
 .metric-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.metric-row.top2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.metric-row.bottom3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .metric-row.ass{grid-template-columns:repeat(3,minmax(0,1fr))}
 .metric-row.sost{grid-template-columns:repeat(3,minmax(0,1fr))}
 .metric-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:var(--shadow);position:relative;min-height:78px}
@@ -113,7 +115,7 @@ td.num,th.num{text-align:right}
         </select>
       </div>
       <div class="filter-search">
-        <input id="searchText" placeholder="Cerca PDV, città, agente, CR..." oninput="refreshAll()">
+        <input id="searchText" placeholder="Cerca PDV, città, agente, CR..." oninput="refreshAll()" onkeydown="handleSearchKey(event)">
       </div>
       <div class="filter-actions">
         <button class="btn ghost" onclick="resetFilters()">Azzera filtri</button>
@@ -302,10 +304,24 @@ function renderHome(){
 
 function openDetail(pdv){ selectedPdv=pdv; showPage('pdv'); }
 
+function handleSearchKey(event){
+  if(event.key!=='Enter') return;
+  event.preventDefault();
+  const rows = withPreset(getBaseRows());
+  if(rows.length===1){
+    selectedPdv = rows[0].pdv;
+    showPage('pdv');
+  } else {
+    refreshAll();
+  }
+}
+
 function autoOpenSingleIfUnique(rows){
   const q=(document.getElementById('searchText').value||'').trim();
-  if(activePage()==='classifica' && q && rows.length===1){
-    openDetail(rows[0].pdv);
+  if(!q || rows.length!==1) return;
+  if(selectedPdv!==rows[0].pdv || activePage()!=='pdv'){
+    selectedPdv=rows[0].pdv;
+    showPage('pdv');
   }
 }
 
@@ -370,9 +386,9 @@ function renderSinglePdv(){
 
       <div class="metric-section">
         <div class="section-title">Vendite</div>
-        <div class="metric-row">
+        <div class="metric-row top2">
           <div class="metric-card ${toneFromPct(r.ytd?.sales_pct,0,-5)}">
-            <h4>Vendite 2026 vs 2025</h4>
+            <h4>Vendite 2026<br>vs 2025</h4>
             <div class="metric-big">${fmtNum(r.ytd?.sales_2026)} vs ${fmtNum(r.ytd?.sales_2025)}</div>
             <div class="metric-sub">${fmtChangePct(r.ytd?.sales_pct)}</div>
           </div>
@@ -381,8 +397,10 @@ function renderSinglePdv(){
             <div class="metric-big">${salesRecoveryText}</div>
             <div class="metric-sub">Media attuale: ${fmtNum(r.ytd?.current_weekly_avg)}</div>
           </div>
-          <div class="metric-card"><h4>Prospect da inizio anno</h4><div class="metric-big">${fmtNum(r.ytd?.prospect)}</div></div>
-          <div class="metric-card"><h4>Twin da inizio anno</h4><div class="metric-big">${fmtNum(r.ytd?.twin)}</div></div>
+        </div>
+        <div class="metric-row bottom3" style="margin-top:8px">
+          <div class="metric-card"><h4>Prospect da<br>inizio anno</h4><div class="metric-big">${fmtNum(r.ytd?.prospect)}</div></div>
+          <div class="metric-card"><h4>Twin da<br>inizio anno</h4><div class="metric-big">${fmtNum(r.ytd?.twin)}</div></div>
           <div class="metric-card"><h4>Business da<br>inizio anno</h4><div class="metric-big">${fmtNum(r.ytd?.business)}</div></div>
         </div>
       </div>
