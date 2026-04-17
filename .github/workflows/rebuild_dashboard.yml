@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'input/report_settimanali/**'
+      - 'input/custom_report/**'
       - 'input/lista/**'
       - 'input/anagrafica/**'
       - 'FILE_UTILI/**'
