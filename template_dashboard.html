@@ -2,461 +2,83 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=1100, initial-scale=0.46, minimum-scale=0.35, maximum-scale=5, user-scalable=yes">
 <title>Telepass ENI</title>
 <style>
-:root{
-  --bg:#f4f7fb;
-  --card:#ffffff;
-  --ink:#10243e;
-  --muted:#5d6b82;
-  --line:#d7dfeb;
-  --blue:#123764;
-  --blue2:#0d6efd;
-  --green:#138a36;
-  --greenbg:#e8f7ec;
-  --orange:#b4690e;
-  --orangebg:#fff4e5;
-  --red:#c62828;
-  --redbg:#fdeceb;
-  --shadow:0 8px 24px rgba(16,36,62,.08);
-}
+:root{--bg:#f4f7fb;--card:#ffffff;--ink:#10243e;--muted:#5d6b82;--line:#d7dfeb;--blue:#123764;--blue2:#0d6efd;--green:#138a36;--greenbg:#e8f7ec;--orange:#b4690e;--orangebg:#fff4e5;--red:#c62828;--redbg:#fdeceb;--shadow:0 6px 18px rgba(16,36,62,.08)}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+html,body{min-width:820px}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:17px}
 a{color:inherit}
 .topbar{position:sticky;top:0;z-index:30;background:#0f2746;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15)}
-.topbar .wrap{max-width:1380px;margin:0 auto;padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between}
-.brand{font-weight:900;font-size:22px;white-space:nowrap}
-.nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.nav button{border:none;background:rgba(255,255,255,.12);color:#fff;padding:11px 16px;border-radius:18px;font-weight:800;cursor:pointer}
+.topbar .wrap{max-width:1060px;margin:0 auto;padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+.brand{font-weight:900;font-size:24px;line-height:1}
+.nav{display:flex;gap:6px;flex-wrap:nowrap;overflow:auto}
+.nav button{border:none;background:rgba(255,255,255,.14);color:#fff;padding:10px 14px;border-radius:10px;font-weight:800;cursor:pointer;white-space:nowrap;font-size:14px}
 .nav button.active{background:#fff;color:#0f2746}
-.container{max-width:1380px;margin:0 auto;padding:18px 16px 40px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow)}
-.page{display:none}
-.page.active{display:block}
-.section-title{font-size:22px;font-weight:900;margin:22px 0 12px}
-.muted{color:var(--muted)}
-.kpi{font-size:32px;font-weight:900;line-height:1}
-.count{font-size:42px;font-weight:900;line-height:1}
-.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-.quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-.quick-card{display:flex;flex-direction:column;justify-content:space-between;gap:12px;min-height:140px;text-align:center}
-.quick-card h3{margin:0;font-size:15px;line-height:1.2}
-.metrics-card{min-height:124px;display:flex;flex-direction:column;justify-content:center;gap:10px}
-.metrics-card h3{margin:0;font-size:15px}
-.alert{border:1px solid #ecdca8;background:#fff8e6;color:#8f5c00;padding:14px 16px;border-radius:16px;margin-top:10px;text-align:center}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--blue2);color:#fff;border:none;border-radius:14px;padding:12px 16px;font-weight:900;cursor:pointer;text-decoration:none}
-.btn.light{background:#edf4ff;color:#114e96;border:1px solid #c7dafb}
-.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
-.btn.block{width:100%}
-.big-action{min-height:44px;font-size:14px;border-radius:12px}
-.filters-card{padding:18px}
-.filter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.filter-grid select,.filter-grid input{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:#fff;font-size:15px}
-.filter-search{margin-top:10px}
-.filter-search input{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:#fff;font-size:15px}
-.filter-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px;flex-wrap:wrap}
-.list-wrap{overflow:auto;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;min-width:1320px}
-th,td{padding:9px 10px;border-bottom:1px solid #e9eef6;text-align:left;vertical-align:top}
-th{position:sticky;top:0;background:#eef4fb;z-index:1;font-size:13px;text-transform:uppercase;letter-spacing:.02em}
-tr:hover{background:#fafcff}
-.num{text-align:right}
-.badge{display:inline-flex;align-items:center;border-radius:999px;padding:6px 11px;font-weight:800;font-size:13px}
-.badge.bene{background:var(--greenbg);color:var(--green)}
-.badge.da-seguire{background:var(--orangebg);color:var(--orange)}
-.badge.male{background:var(--redbg);color:var(--red)}
-.detail{display:none;margin-top:12px}
-.detail.active{display:block}
-.detail-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
-.detail-title{font-size:30px;font-weight:900}
-.metric-section{margin-top:18px}
-.metric-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-.metric-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow)}
-.metric-big{font-size:28px;font-weight:900;line-height:1.1}
-.metric-sub{margin-top:8px;color:var(--muted);font-size:15px;font-weight:700}
-.week-table{margin-top:18px;border:1px solid var(--line);border-radius:20px;overflow:auto;background:#fff;box-shadow:var(--shadow)}
-.week-table table{min-width:900px}
-.comment-box{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px 18px}
-.file-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.empty{padding:18px;border:1px dashed var(--line);border-radius:18px;background:#fff}
-@media (max-width:1100px){
-  .filter-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-  .cards,.quick-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-}
-@media (max-width:700px){
-  .container{padding:12px}
-  .topbar .wrap{padding:10px 12px;align-items:center}
-  .brand{font-size:18px}
-  .nav{gap:6px}
-  .nav button{padding:9px 12px;font-size:13px}
-  .filters-card{padding:14px}
-  .filter-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-  .filter-grid select,.filter-grid input,.filter-search input{font-size:13px;padding:10px 12px}
-  .filter-actions{justify-content:space-between}
-  .filter-actions .btn{flex:1 1 auto}
-  .cards,.quick-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-  .metrics-card,.quick-card{padding:12px;min-height:126px}
-  .metrics-card h3,.quick-card h3{font-size:13px}
-  .kpi{font-size:26px}
-  .count{font-size:26px}
-  .big-action{font-size:11px;padding:10px 8px;min-height:38px}
-  .section-title{font-size:18px;margin:18px 0 10px}
-  .metric-row,.file-list{grid-template-columns:1fr}
-  .detail-title{font-size:24px}
-}
+.container{max-width:1060px;margin:0 auto;padding:10px 14px 22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:var(--shadow)}
+h3{margin:0 0 8px 0;font-size:18px;line-height:1.2;text-align:center;font-weight:900}
+.sticky-tools{position:sticky;top:48px;z-index:24;margin-bottom:10px}.sticky-tools>.card{padding:12px 14px}
+.filter-main{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.filter-search{margin-top:10px}.filter-search input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:15px;min-height:46px}.filter-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+.filter-main select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:15px;min-height:46px}
+.home-top-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}
+.kpi-card{min-height:118px;display:flex;flex-direction:column;justify-content:center;text-align:center}.top-pdv-card{min-height:118px}
+.quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.quick-card{display:flex;flex-direction:column;justify-content:space-between;align-items:center;gap:10px;min-height:132px;text-align:center}
+.quick-card .count{font-size:52px;font-weight:900;line-height:1;text-align:center}.kpi{font-size:56px;font-weight:900;line-height:1;text-align:center}
+.muted{color:#58667d;font-size:17px;text-align:center;line-height:1.25}
+.section-title{font-size:24px;font-weight:900;margin:16px 0 10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--blue2);color:#fff;border:none;border-radius:12px;padding:12px 18px;font-weight:900;cursor:pointer;text-decoration:none;font-size:17px;white-space:nowrap}
+.btn.light{background:#edf4ff;color:#114e96;border:1px solid #c7dafb;font-weight:800}.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.big-action{min-height:52px;font-size:15px;line-height:1.15;padding:10px 12px;width:100%;text-align:center}
+.page{display:none}.page.active{display:block}
+.alert{border:1px solid #f2d68c;background:#fff8e6;color:#8f5c00;padding:12px 14px;border-radius:12px;font-size:15px;margin-top:10px;text-align:center}
+.list-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:1180px}
+th,td{padding:7px 8px;border-bottom:1px solid #e9eef6;text-align:left;vertical-align:top;font-size:12px}
+th{position:sticky;top:0;background:#eef4fb;z-index:1;font-size:11px;text-transform:uppercase;letter-spacing:.02em}
+tr:hover{background:#fafcff}td.num,th.num{text-align:right}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-weight:800;font-size:11px}.badge.bene{background:var(--greenbg);color:var(--green)}.badge.da-seguire{background:var(--orangebg);color:var(--orange)}.badge.male{background:var(--redbg);color:var(--red)}
+.detail{display:none;margin-top:6px}.detail.active{display:block}
+.file-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.empty{padding:14px;border:1px dashed var(--line);border-radius:14px;background:#fff}
 </style>
 </head>
 <body>
-<div class="topbar">
-  <div class="wrap">
-    <div class="brand">Telepass ENI</div>
-    <div class="nav">
-      <button class="active" data-page="home" onclick="showPage('home', this)">Home</button>
-      <button data-page="classifica" onclick="showPage('classifica', this)">Classifica</button>
-      <button data-page="gare-pdv" onclick="showPage('gare-pdv', this)">Gare PDV</button>
-      <button data-page="gare-agenti" onclick="showPage('gare-agenti', this)">Gare agenti</button>
-      <button data-page="file-utili" onclick="showPage('file-utili', this)">File utili</button>
-    </div>
-  </div>
-</div>
-
+<div class="topbar"><div class="wrap"><div class="brand">Telepass ENI</div><div class="nav"><button class="active" data-page="home" onclick="showPage('home', this)">Home</button><button data-page="classifica" onclick="showPage('classifica', this)">Classifica</button><button data-page="gare-pdv" onclick="showPage('gare-pdv', this)">Gare PDV</button><button data-page="gare-agenti" onclick="showPage('gare-agenti', this)">Gare agenti</button><button data-page="file-utili" onclick="showPage('file-utili', this)">File utili</button></div></div></div>
 <div class="container">
-  <div class="card filters-card">
-    <div class="filter-grid">
-      <select id="agentFilter" onchange="refreshAll()"></select>
-      <select id="crFilter" onchange="refreshAll()"></select>
-      <select id="rzvFilter" onchange="refreshAll()"></select>
-      <select id="statusFilter" onchange="refreshAll()">
-        <option value="">Tutti gli stati</option>
-        <option value="Bene">Bene</option>
-        <option value="Da seguire">Da seguire</option>
-        <option value="Male">Male</option>
-      </select>
-    </div>
-    <div class="filter-search">
-      <input id="searchText" placeholder="Cerca PDV, città, agente, CR..." oninput="refreshAll()">
-    </div>
-    <div class="filter-actions">
-      <button class="btn ghost" onclick="resetFilters()">Azzera filtri</button>
-      <button class="btn light" onclick="openExcelReport()">Apri Excel</button>
-      <button class="btn light" onclick="openPdfReport()">Stampa / PDF</button>
-    </div>
-  </div>
-
-  <section id="page-home" class="page active">
-    <div class="cards">
-      <div class="card metrics-card">
-        <h3>Totale vendite 2026</h3>
-        <div class="kpi" id="sumSales2026">-</div>
-        <div class="muted" id="sumSales2025">vs 2025: -</div>
-      </div>
-      <div class="card metrics-card">
-        <h3>Totale prospect 2026</h3>
-        <div class="kpi" id="sumProspect2026">-</div>
-      </div>
-      <div class="card metrics-card">
-        <h3>Totale assistenze 2026</h3>
-        <div class="kpi" id="sumAssist2026">-</div>
-        <div class="muted" id="sumAssist2025">vs 2025: -</div>
-      </div>
-      <div class="card quick-card">
-        <div>
-          <h3>Tutti i punti vendita</h3>
-          <div class="count" id="countAll">0</div>
-        </div>
-        <button class="btn block big-action" onclick="setPreset('all')">CLICCA QUI · APRI ELENCO</button>
-      </div>
-    </div>
-
-    <div class="section-title">Dove guardare subito</div>
-    <div class="quick-grid">
-      <div class="card quick-card">
-        <div>
-          <h3>PDV da seguire</h3>
-          <div class="count" id="countFollow">0</div>
-        </div>
-        <button class="btn block big-action" onclick="setPreset('follow')">CLICCA QUI · APRI ELENCO</button>
-      </div>
-      <div class="card quick-card">
-        <div>
-          <h3>Vendite 2026 sotto il 2025</h3>
-          <div class="count" id="countSalesBelow">0</div>
-        </div>
-        <button class="btn block big-action" onclick="setPreset('salesBelow')">CLICCA QUI · APRI ELENCO</button>
-      </div>
-      <div class="card quick-card">
-        <div>
-          <h3>Assistenze 2026 sotto il 2025</h3>
-          <div class="count" id="countAssistBelow">0</div>
-        </div>
-        <button class="btn block big-action" onclick="setPreset('assistBelow')">CLICCA QUI · APRI ELENCO</button>
-      </div>
-      <div class="card quick-card">
-        <div>
-          <h3>PDV in calo ultime settimane</h3>
-          <div class="count" id="countDecline">0</div>
-        </div>
-        <button class="btn block big-action" onclick="setPreset('decline')">CLICCA QUI · APRI ELENCO</button>
-      </div>
-    </div>
-    <div class="alert" id="quickText"></div>
-  </section>
-
-  <section id="page-classifica" class="page">
-    <div class="section-title" id="listTitle">Tutti i punti vendita</div>
-    <div class="list-wrap">
-      <table id="listTable">
-        <thead><tr>
-          <th></th><th class="num">#</th><th>PDV</th><th>Città</th><th>Agente</th><th>CR</th><th>RZV</th>
-          <th class="num">Vend 2026</th><th class="num">Vend 2025</th><th class="num">Prospect</th><th class="num">Twin</th><th class="num">Business</th>
-          <th class="num">Ass 2026</th><th class="num">Ass 2025</th><th class="num">Sost anno</th><th class="num">UP EU anno</th>
-          <th class="num">% Ass.</th><th class="num">% UP EU</th><th class="num">W__CURRENT_WEEK__ vend.</th><th class="num">W__CURRENT_WEEK__ prosp.</th><th class="num">W__CURRENT_WEEK__ ass.</th><th>Stato</th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <div id="detailPanel" class="detail"></div>
-  </section>
-
-  <section id="page-gare-pdv" class="page">
-    <div class="section-title">Gare PDV</div>
-    <div id="garePdvWrap"></div>
-  </section>
-
-  <section id="page-gare-agenti" class="page">
-    <div class="section-title">Gare agenti</div>
-    <div id="gareAgentiWrap"></div>
-  </section>
-
-  <section id="page-file-utili" class="page">
-    <div class="section-title">File utili</div>
-    <div id="fileUtiliWrap" class="file-list"></div>
-  </section>
+<div class="sticky-tools"><div class="card"><div class="filter-main"><select id="agentFilter" onchange="refreshAll()"></select><select id="crFilter" onchange="refreshAll()"></select><select id="rzvFilter" onchange="refreshAll()"></select><select id="statusFilter" onchange="refreshAll()"><option value="">Tutti gli stati</option><option value="Bene">Bene</option><option value="Da seguire">Da seguire</option><option value="Male">Male</option></select></div><div class="filter-search"><input id="searchText" placeholder="Cerca PDV, città, agente, CR..." oninput="refreshAll()"></div><div class="filter-actions"><button class="btn ghost" onclick="resetFilters()">Azzera filtri</button><button class="btn light" onclick="openExcelReport()">Apri Excel</button><button class="btn light" onclick="openPdfReport()">Stampa / PDF</button></div></div></div>
+<section id="page-home" class="page active"><div class="home-top-grid"><div class="card kpi-card"><h3>Totale vendite 2026</h3><div class="kpi" id="sumSales2026">-</div><div class="muted" id="sumSales2025">vs 2025: -</div></div><div class="card kpi-card"><h3>Totale prospect 2026</h3><div class="kpi" id="sumProspect2026">-</div></div><div class="card kpi-card"><h3>Totale assistenze 2026</h3><div class="kpi" id="sumAssist2026">-</div><div class="muted" id="sumAssist2025">vs 2025: -</div></div><div class="card quick-card top-pdv-card"><div style="width:100%;text-align:center"><h3>Tutti i punti vendita</h3><div class="count" id="countAll">0</div></div><button class="btn big-action" onclick="setPreset('all')">CLICCA QUI</button></div></div><div class="section-title">Dove guardare subito</div><div class="quick-grid"><div class="card quick-card"><div style="width:100%;text-align:center"><h3>PDV da seguire</h3><div class="count" id="countFollow">0</div></div><button class="btn big-action" onclick="setPreset('follow')">CLICCA QUI</button></div><div class="card quick-card"><div style="width:100%;text-align:center"><h3>Vendite 2026 sotto il 2025</h3><div class="count" id="countSalesBelow">0</div></div><button class="btn big-action" onclick="setPreset('salesBelow')">CLICCA QUI</button></div><div class="card quick-card"><div style="width:100%;text-align:center"><h3>Assistenze 2026 sotto il 2025</h3><div class="count" id="countAssistBelow">0</div></div><button class="btn big-action" onclick="setPreset('assistBelow')">CLICCA QUI</button></div><div class="card quick-card"><div style="width:100%;text-align:center"><h3>PDV in calo ultime settimane</h3><div class="count" id="countDecline">0</div></div><button class="btn big-action" onclick="setPreset('decline')">CLICCA QUI</button></div></div><div class="alert" id="quickText"></div></section>
+<section id="page-classifica" class="page"><div class="section-title" id="listTitle">Tutti i punti vendita</div><div class="list-wrap"><table id="listTable"><thead><tr><th></th><th class="num">#</th><th>PDV</th><th>Città</th><th>Agente</th><th>CR</th><th>RZV</th><th class="num">Vend 2026</th><th class="num">Vend 2025</th><th class="num">Prospect</th><th class="num">Twin</th><th class="num">Business</th><th class="num">Ass 2026</th><th class="num">Ass 2025</th><th class="num">Sost anno</th><th class="num">UP EU anno</th><th class="num">% Ass.</th><th class="num">% UP EU</th><th class="num">W__CURRENT_WEEK__ vend.</th><th class="num">W__CURRENT_WEEK__ prosp.</th><th class="num">W__CURRENT_WEEK__ ass.</th><th>Stato</th></tr></thead><tbody></tbody></table></div><div id="detailPanel" class="detail"></div></section>
+<section id="page-gare-pdv" class="page"><div class="section-title">Gare PDV</div><div id="garePdvWrap"></div></section>
+<section id="page-gare-agenti" class="page"><div class="section-title">Gare agenti</div><div id="gareAgentiWrap"></div></section>
+<section id="page-file-utili" class="page"><div class="section-title">File utili</div><div id="fileUtiliWrap" class="file-list"></div></section>
 </div>
-
 <script>
-const APP = __DATA_JSON__;
-const DATA = APP.rows || [];
-const HISTORY = APP.history || {};
-const EXPORTS = APP.export_manifest || {};
-let currentPreset = 'all';
-let currentRows = [];
-
-function fmtNum(v){
-  if(v===null || v===undefined || v==='') return '-';
-  return Number(v).toLocaleString('it-IT');
-}
-function fmtPct(v){
-  if(v===null || v===undefined || v==='') return '-';
-  return `${Number(v).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`;
-}
-function escapeHtml(text){
-  return String(text ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-}
-function slugStatus(s){ return (s || '').toLowerCase().replaceAll(' ','-'); }
-function badge(s){ return `<span class="badge ${slugStatus(s)}">${escapeHtml(s || '-')}</span>`; }
-function uniqueSorted(key){
-  return [...new Set(DATA.map(r => r[key]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'it'));
-}
-function fillSelect(id, values, label){
-  const el=document.getElementById(id);
-  const current=el.dataset.current || '';
-  el.innerHTML = `<option value="">${label}</option>` + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
-  el.value = current || '';
-}
-function resetFilters(){
-  ['searchText','agentFilter','crFilter','rzvFilter','statusFilter'].forEach(id => {
-    const el=document.getElementById(id);
-    if(!el) return;
-    el.value='';
-  });
-  currentPreset='all';
-  refreshAll();
-}
-function getBaseRows(){
-  const search=(document.getElementById('searchText').value || '').toLowerCase().trim();
-  const agent=document.getElementById('agentFilter').value;
-  const cr=document.getElementById('crFilter').value;
-  const rzv=document.getElementById('rzvFilter').value;
-  const status=document.getElementById('statusFilter').value;
-  return DATA.filter(r => {
-    if(agent && r.agent !== agent) return false;
-    if(cr && r.cr !== cr) return false;
-    if(rzv && r.rzv !== rzv) return false;
-    if(status && r.status !== status) return false;
-    if(search){
-      const hay = `${r.pdv} ${r.city} ${r.agent} ${r.cr} ${r.rzv} ${r.address}`.toLowerCase();
-      if(!hay.includes(search)) return false;
-    }
-    return true;
-  });
-}
-function withPreset(rows){
-  return rows.filter(r => {
-    if(currentPreset==='follow') return r.flags?.follow;
-    if(currentPreset==='salesBelow') return r.flags?.sales_below;
-    if(currentPreset==='assistBelow') return r.flags?.assist_below;
-    if(currentPreset==='decline') return r.flags?.recent_decline;
-    return true;
-  });
-}
-function presetTitle(){
-  return ({all:'Tutti i punti vendita', follow:'PDV da seguire', salesBelow:'Vendite 2026 sotto il 2025', assistBelow:'Assistenze 2026 sotto il 2025', decline:'PDV in calo ultime settimane'})[currentPreset] || 'Tutti i punti vendita';
-}
-function setPreset(p){
-  currentPreset=p;
-  showPage('classifica');
-  refreshAll();
-}
-function showPage(page, btn){
-  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-  document.getElementById(`page-${page}`).classList.add('active');
-  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-  const navBtn = btn || [...document.querySelectorAll('.nav button')].find(b => b.dataset.page===page);
-  if(navBtn) navBtn.classList.add('active');
-  if(page==='gare-pdv') renderGare('garePdvWrap', APP.gare_pdv, 'Nessuna gara in corso');
-  if(page==='gare-agenti') renderGare('gareAgentiWrap', APP.gare_agenti, 'Nessuna gara in corso');
-  if(page==='file-utili') renderFiles();
-}
-function renderGare(targetId, items, emptyText){
-  const wrap=document.getElementById(targetId);
-  if(!items || !items.length){ wrap.innerHTML = `<div class="empty">${emptyText}</div>`; return; }
-  wrap.innerHTML = items.map(g => `<div class="card"><h3>${escapeHtml(g.title)}</h3><ul>${(g.items || []).map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul></div>`).join('');
-}
-function renderFiles(){
-  const wrap=document.getElementById('fileUtiliWrap');
-  if(!APP.file_utili || !APP.file_utili.length){ wrap.innerHTML = `<div class="empty">Nessun file disponibile.</div>`; return; }
-  wrap.innerHTML = APP.file_utili.map(f => `<div class="card"><h3>${escapeHtml(f.name)}</h3><a class="btn" href="${encodeURI(f.path)}" download>Scarica file</a></div>`).join('');
-}
-function renderHome(){
-  const base=getBaseRows();
-  document.getElementById('sumSales2026').textContent = fmtNum(base.reduce((a,r)=>a+(r.ytd?.sales_2026||0),0));
-  document.getElementById('sumSales2025').textContent = `vs 2025: ${fmtNum(base.reduce((a,r)=>a+(r.ytd?.sales_2025||0),0))}`;
-  document.getElementById('sumProspect2026').textContent = fmtNum(base.reduce((a,r)=>a+(r.ytd?.prospect||0),0));
-  document.getElementById('sumAssist2026').textContent = fmtNum(base.reduce((a,r)=>a+(r.ytd?.assist_2026||0),0));
-  document.getElementById('sumAssist2025').textContent = `vs 2025: ${fmtNum(base.reduce((a,r)=>a+(r.ytd?.assist_2025||0),0))}`;
-  document.getElementById('countAll').textContent = fmtNum(base.length);
-  document.getElementById('countFollow').textContent = fmtNum(base.filter(r=>r.flags?.follow).length);
-  document.getElementById('countSalesBelow').textContent = fmtNum(base.filter(r=>r.flags?.sales_below).length);
-  document.getElementById('countAssistBelow').textContent = fmtNum(base.filter(r=>r.flags?.assist_below).length);
-  document.getElementById('countDecline').textContent = fmtNum(base.filter(r=>r.flags?.recent_decline).length);
-  const txt = base.filter(r=>r.flags?.follow).length ? 'Alcuni impianti sono da seguire. Priorità: vendite 2026 sotto il 2025, assistenze basse sulle operazioni e calo nelle ultime settimane.' : 'Situazione complessivamente regolare sul filtro scelto.';
-  document.getElementById('quickText').textContent = txt;
-}
-function renderList(){
-  const rows=withPreset(getBaseRows());
-  currentRows=rows;
-  document.getElementById('listTitle').textContent = `${presetTitle()} · ${fmtNum(rows.length)} PDV`;
-  const tbody=document.querySelector('#listTable tbody');
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td><button class="btn light" onclick="openDetail('${r.pdv}')">Apri</button></td>
-      <td class="num">${fmtNum(r.rank_sales)}</td>
-      <td><b>${escapeHtml(r.pdv)}</b></td>
-      <td>${escapeHtml(r.city)}</td>
-      <td>${escapeHtml(r.agent)}</td>
-      <td>${escapeHtml(r.cr)}</td>
-      <td>${escapeHtml(r.rzv)}</td>
-      <td class="num"><b>${fmtNum(r.ytd?.sales_2026)}</b></td>
-      <td class="num">${fmtNum(r.ytd?.sales_2025)}</td>
-      <td class="num">${fmtNum(r.ytd?.prospect)}</td>
-      <td class="num">${fmtNum(r.ytd?.twin)}</td>
-      <td class="num">${fmtNum(r.ytd?.business)}</td>
-      <td class="num"><b>${fmtNum(r.ytd?.assist_2026)}</b></td>
-      <td class="num">${fmtNum(r.ytd?.assist_2025)}</td>
-      <td class="num">${fmtNum(r.ytd?.sost_family)}</td>
-      <td class="num">${fmtNum(r.ytd?.up_eu)}</td>
-      <td class="num">${fmtPct(r.ytd?.attach_rate)}</td>
-      <td class="num">${fmtPct(r.ytd?.up_eu_rate)}</td>
-      <td class="num">${fmtNum(r.latest?.sales_total)}</td>
-      <td class="num">${fmtNum(r.latest?.prospect)}</td>
-      <td class="num">${fmtNum(r.latest?.assist)}</td>
-      <td>${badge(r.status)}</td>
-    </tr>`).join('');
-  if(!rows.length) tbody.innerHTML = `<tr><td colspan="22">Nessun PDV con i filtri scelti.</td></tr>`;
-}
-function openDetail(pdv){
-  const r = DATA.find(x => x.pdv === pdv);
-  if(!r) return;
-  const hist = HISTORY[pdv] || [];
-  const panel=document.getElementById('detailPanel');
-  panel.classList.add('active');
-  panel.innerHTML = `
-    <div class="card">
-      <div class="detail-head">
-        <div>
-          <div class="detail-title">${escapeHtml(r.pdv)} · ${escapeHtml(r.city)}</div>
-          <div class="muted" style="font-size:16px;margin-top:6px">${escapeHtml(r.address || '')}</div>
-          <div style="margin-top:8px;font-size:18px"><b>Agente:</b> ${escapeHtml(r.agent)} · <b>CR:</b> ${escapeHtml(r.cr)} · <b>RZV:</b> ${escapeHtml(r.rzv)}</div>
-        </div>
-        <div>${badge(r.status)}</div>
-      </div>
-      <div class="metric-section">
-        <div class="metric-row">
-          <div class="metric-card"><h4>Vendite 2026</h4><div class="metric-big">${fmtNum(r.ytd?.sales_2026)}</div><div class="metric-sub">vs 2025: ${fmtNum(r.ytd?.sales_2025)}</div></div>
-          <div class="metric-card"><h4>Prospect</h4><div class="metric-big">${fmtNum(r.ytd?.prospect)}</div><div class="metric-sub">Twin: ${fmtNum(r.ytd?.twin)}</div></div>
-          <div class="metric-card"><h4>Assistenze 2026</h4><div class="metric-big">${fmtNum(r.ytd?.assist_2026)}</div><div class="metric-sub">vs 2025: ${fmtNum(r.ytd?.assist_2025)}</div></div>
-          <div class="metric-card"><h4>Settimana corrente</h4><div class="metric-big">${fmtNum(r.latest?.sales_total)}</div><div class="metric-sub">Ass.: ${fmtNum(r.latest?.assist)}</div></div>
-        </div>
-      </div>
-      <div class="week-table">
-        <table>
-          <thead><tr><th>Settimana</th><th class="num">Vendite</th><th class="num">Prospect</th><th class="num">Twin</th><th class="num">Business</th><th class="num">Assistenze</th></tr></thead>
-          <tbody>
-            ${hist.map(w => `<tr><td>W${String(w.week).padStart(2,'0')}</td><td class="num">${fmtNum(w.sales_total)}</td><td class="num">${fmtNum(w.prospect)}</td><td class="num">${fmtNum(w.twin)}</td><td class="num">${fmtNum(w.business)}</td><td class="num">${fmtNum(w.assist)}</td></tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div class="comment-box">
-        <h3 style="margin-top:0">Commento</h3>
-        <ul>${(r.notes || []).map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>
-      </div>
-    </div>`;
-  panel.scrollIntoView({behavior:'smooth', block:'start'});
-}
-function exportKey(){
-  const search=(document.getElementById('searchText').value || '').trim();
-  const status=document.getElementById('statusFilter').value;
-  const agent=document.getElementById('agentFilter').value;
-  const cr=document.getElementById('crFilter').value;
-  const rzv=document.getElementById('rzvFilter').value;
-  if(search || status || currentPreset !== 'all') return null;
-  if(agent && cr) return `pair::${agent}||${cr}`;
-  if(agent) return `agent::${agent}`;
-  if(cr) return `cr::${cr}`;
-  if(rzv) return `rzv::${rzv}`;
-  return 'all';
-}
-function openExcelReport(){
-  const key=exportKey();
-  if(!key || !EXPORTS[key]){
-    alert('Per aprire l’Excel pronto usa filtri semplici: Tutti i punti vendita, solo Agente, solo CR, solo RZV oppure Agente + CR.');
-    return;
-  }
-  window.open(EXPORTS[key].path, '_blank');
-}
-function openPdfReport(){
-  window.print();
-}
-function refreshAll(){
-  document.getElementById('agentFilter').dataset.current = document.getElementById('agentFilter').value;
-  document.getElementById('crFilter').dataset.current = document.getElementById('crFilter').value;
-  document.getElementById('rzvFilter').dataset.current = document.getElementById('rzvFilter').value;
-  renderHome();
-  renderList();
-}
-function init(){
-  fillSelect('agentFilter', uniqueSorted('agent'), 'Tutti gli agenti');
-  fillSelect('crFilter', uniqueSorted('cr'), 'Tutti i CR');
-  fillSelect('rzvFilter', uniqueSorted('rzv'), 'Tutti gli RZV');
-  renderHome();
-  renderList();
-  renderGare('garePdvWrap', APP.gare_pdv, 'Nessuna gara in corso');
-  renderGare('gareAgentiWrap', APP.gare_agenti, 'Nessuna gara in corso');
-  renderFiles();
-}
-init();
+const APP=__DATA_JSON__;const DATA=APP.rows||[];const EXPORTS=APP.export_manifest||{};let currentPreset='all';let currentRows=[];
+function fmtNum(v){if(v===null||v===undefined||v==='')return '-';return Number(v).toLocaleString('it-IT')}
+function fmtPct(v){if(v===null||v===undefined||v==='')return '-';return `${Number(v).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`}
+function esc(t){return String(t??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
+function badge(s){const c=(s||'').toLowerCase().replaceAll(' ','-');return `<span class="badge ${c}">${esc(s||'-')}</span>`}
+function uniq(k){return [...new Set(DATA.map(r=>r[k]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'it'))}
+function fill(id,label,vals){const el=document.getElementById(id);const cur=el.dataset.current||'';el.innerHTML=`<option value="">${label}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');el.value=cur||''}
+function resetFilters(){['searchText','agentFilter','crFilter','rzvFilter','statusFilter'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='' });currentPreset='all';refreshAll()}
+function getBaseRows(){const q=(document.getElementById('searchText').value||'').toLowerCase().trim();const agent=document.getElementById('agentFilter').value;const cr=document.getElementById('crFilter').value;const rzv=document.getElementById('rzvFilter').value;const status=document.getElementById('statusFilter').value;return DATA.filter(r=>{if(agent&&r.agent!==agent)return false;if(cr&&r.cr!==cr)return false;if(rzv&&r.rzv!==rzv)return false;if(status&&r.status!==status)return false;if(q){const hay=`${r.pdv} ${r.city} ${r.agent} ${r.cr} ${r.rzv} ${r.address}`.toLowerCase();if(!hay.includes(q))return false}return true})}
+function withPreset(rows){return rows.filter(r=>{if(currentPreset==='follow')return r.flags?.follow;if(currentPreset==='salesBelow')return r.flags?.sales_below;if(currentPreset==='assistBelow')return r.flags?.assist_below;if(currentPreset==='decline')return r.flags?.recent_decline;return true})}
+function presetTitle(){return({all:'Tutti i punti vendita',follow:'PDV da seguire',salesBelow:'Vendite 2026 sotto il 2025',assistBelow:'Assistenze 2026 sotto il 2025',decline:'PDV in calo ultime settimane'})[currentPreset]||'Tutti i punti vendita'}
+function setPreset(p){currentPreset=p;showPage('classifica');refreshAll()}
+function showPage(page,btn){document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));document.getElementById(`page-${page}`).classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));const navBtn=btn||[...document.querySelectorAll('.nav button')].find(b=>b.dataset.page===page);if(navBtn)navBtn.classList.add('active');if(page==='gare-pdv')renderGare('garePdvWrap',APP.gare_pdv,'Nessuna gara in corso');if(page==='gare-agenti')renderGare('gareAgentiWrap',APP.gare_agenti,'Nessuna gara in corso');if(page==='file-utili')renderFiles()}
+function renderGare(id,items,empty){const w=document.getElementById(id);if(!items||!items.length){w.innerHTML=`<div class="empty">${empty}</div>`;return}w.innerHTML=items.map(g=>`<div class="card"><h3>${esc(g.title)}</h3><ul>${(g.items||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`).join('')}
+function renderFiles(){const w=document.getElementById('fileUtiliWrap');const files=APP.file_utili||[];if(!files.length){w.innerHTML='<div class="empty">Nessun file disponibile.</div>';return}w.innerHTML=files.map(f=>`<div class="card"><h3>${esc(f.name)}</h3><a class="btn" href="${encodeURI(f.path)}" download>Scarica file</a></div>`).join('')}
+function renderHome(){const rows=getBaseRows();document.getElementById('sumSales2026').textContent=fmtNum(rows.reduce((a,r)=>a+(r.ytd?.sales_2026||0),0));document.getElementById('sumSales2025').textContent=`vs 2025: ${fmtNum(rows.reduce((a,r)=>a+(r.ytd?.sales_2025||0),0))}`;document.getElementById('sumProspect2026').textContent=fmtNum(rows.reduce((a,r)=>a+(r.ytd?.prospect||0),0));document.getElementById('sumAssist2026').textContent=fmtNum(rows.reduce((a,r)=>a+(r.ytd?.assist_2026||0),0));document.getElementById('sumAssist2025').textContent=`vs 2025: ${fmtNum(rows.reduce((a,r)=>a+(r.ytd?.assist_2025||0),0))}`;document.getElementById('countAll').textContent=fmtNum(rows.length);document.getElementById('countFollow').textContent=fmtNum(rows.filter(r=>r.flags?.follow).length);document.getElementById('countSalesBelow').textContent=fmtNum(rows.filter(r=>r.flags?.sales_below).length);document.getElementById('countAssistBelow').textContent=fmtNum(rows.filter(r=>r.flags?.assist_below).length);document.getElementById('countDecline').textContent=fmtNum(rows.filter(r=>r.flags?.recent_decline).length);document.getElementById('quickText').textContent=rows.filter(r=>r.flags?.follow).length?'Alcuni impianti sono da seguire. Priorità: vendite 2026 sotto il 2025, assistenze basse sulle operazioni e calo nelle ultime settimane.':'Situazione complessivamente regolare sul filtro scelto.'}
+function renderList(){const rows=withPreset(getBaseRows());currentRows=rows;document.getElementById('listTitle').textContent=`${presetTitle()} · ${fmtNum(rows.length)} PDV`;const tb=document.querySelector('#listTable tbody');tb.innerHTML=rows.map(r=>`<tr><td><button class="btn light" onclick="openDetail('${r.pdv}')">Apri</button></td><td class="num">${fmtNum(r.rank_sales)}</td><td><b>${esc(r.pdv)}</b></td><td>${esc(r.city)}</td><td>${esc(r.agent)}</td><td>${esc(r.cr)}</td><td>${esc(r.rzv)}</td><td class="num"><b>${fmtNum(r.ytd?.sales_2026)}</b></td><td class="num">${fmtNum(r.ytd?.sales_2025)}</td><td class="num">${fmtNum(r.ytd?.prospect)}</td><td class="num">${fmtNum(r.ytd?.twin)}</td><td class="num">${fmtNum(r.ytd?.business)}</td><td class="num"><b>${fmtNum(r.ytd?.assist_2026)}</b></td><td class="num">${fmtNum(r.ytd?.assist_2025)}</td><td class="num">${fmtNum(r.ytd?.sost_family)}</td><td class="num">${fmtNum(r.ytd?.up_eu)}</td><td class="num">${fmtPct(r.ytd?.attach_rate)}</td><td class="num">${fmtPct(r.ytd?.up_eu_rate)}</td><td class="num">${fmtNum(r.latest?.sales_total)}</td><td class="num">${fmtNum(r.latest?.prospect)}</td><td class="num">${fmtNum(r.latest?.assist)}</td><td>${badge(r.status)}</td></tr>`).join('');if(!rows.length)tb.innerHTML='<tr><td colspan="22">Nessun PDV con i filtri scelti.</td></tr>'}
+function openDetail(pdv){const r=DATA.find(x=>x.pdv===pdv);const p=document.getElementById('detailPanel');if(!r){p.classList.remove('active');return}p.classList.add('active');p.innerHTML=`<div class="card"><h3 style="text-align:left">${esc(r.pdv)} · ${esc(r.city)}</h3><div class="muted" style="text-align:left">${esc(r.address||'')}</div><div style="margin-top:10px;font-size:14px"><b>Agente:</b> ${esc(r.agent)} · <b>CR:</b> ${esc(r.cr)} · <b>RZV:</b> ${esc(r.rzv)}</div><div style="margin-top:10px;font-size:14px"><b>Vendite 2026:</b> ${fmtNum(r.ytd?.sales_2026)} · <b>Vendite 2025:</b> ${fmtNum(r.ytd?.sales_2025)} · <b>Prospect:</b> ${fmtNum(r.ytd?.prospect)} · <b>Assistenze:</b> ${fmtNum(r.ytd?.assist_2026)}</div></div>`;p.scrollIntoView({behavior:'smooth',block:'start'})}
+function exportKey(){const search=(document.getElementById('searchText').value||'').trim();const status=document.getElementById('statusFilter').value;const agent=document.getElementById('agentFilter').value;const cr=document.getElementById('crFilter').value;const rzv=document.getElementById('rzvFilter').value;if(search||status||currentPreset!=='all')return null;if(agent&&cr)return `pair::${agent}||${cr}`;if(agent)return `agent::${agent}`;if(cr)return `cr::${cr}`;if(rzv)return `rzv::${rzv}`;return 'all'}
+function openExcelReport(){const key=exportKey();if(!key||!EXPORTS[key]){alert('Per aprire l’Excel pronto usa filtri semplici: Tutti i punti vendita, solo Agente, solo CR, solo RZV oppure Agente + CR.');return}window.open(EXPORTS[key].path,'_blank')}
+function openPdfReport(){window.print()}
+function refreshAll(){document.getElementById('agentFilter').dataset.current=document.getElementById('agentFilter').value;document.getElementById('crFilter').dataset.current=document.getElementById('crFilter').value;document.getElementById('rzvFilter').dataset.current=document.getElementById('rzvFilter').value;renderHome();renderList()}
+fill('agentFilter','Tutti gli agenti',uniq('agent'));fill('crFilter','Tutti i CR',uniq('cr'));fill('rzvFilter','Tutti gli RZV',uniq('rzv'));renderHome();renderList();renderGare('garePdvWrap',APP.gare_pdv,'Nessuna gara in corso');renderGare('gareAgentiWrap',APP.gare_agenti,'Nessuna gara in corso');renderFiles();
 </script>
 </body>
 </html>
