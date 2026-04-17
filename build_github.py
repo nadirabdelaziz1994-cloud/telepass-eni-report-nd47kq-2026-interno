@@ -26,7 +26,11 @@ def main():
         raise SystemExit("ERRORE: non ci sono report settimana dentro input/report_settimanali")
 
     OUT_DIR.mkdir(exist_ok=True, parents=True)
-    cmd = [sys.executable, str(ROOT / 'aggiorna_dashboard.py'), str(lista), str(anag), str(REPORT_DIR), str(OUT_DIR)]
+    script = ROOT / 'aggiorna_dashboard_github.py'
+    if not script.exists():
+        raise SystemExit("ERRORE: manca aggiorna_dashboard_github.py")
+
+    cmd = [sys.executable, str(script), str(lista), str(anag), str(REPORT_DIR), str(OUT_DIR)]
     print('Eseguo:', ' '.join(cmd))
     subprocess.run(cmd, check=True)
 
@@ -34,11 +38,9 @@ def main():
     if generated.exists():
         shutil.copy2(generated, OUT_DIR / 'index.html')
 
-    # file utile per GitHub Pages
     (OUT_DIR / '.nojekyll').write_text('', encoding='utf-8')
-
-    # placeholder se files utili vuoti
     print('Build completata. Apri docs/index.html o pubblica docs con GitHub Pages.')
+
 
 if __name__ == '__main__':
     main()
