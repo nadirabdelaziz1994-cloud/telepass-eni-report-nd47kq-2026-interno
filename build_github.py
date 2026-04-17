@@ -11,8 +11,10 @@ OUT_DIR = ROOT / 'docs'
 
 
 def first_xlsx(folder: Path):
-    files = sorted([p for p in folder.rglob('*.xlsx') if not p.name.startswith('~$')])
-    return files[0] if files else None
+    files = [p for p in folder.rglob('*.xlsx') if not p.name.startswith('~$')]
+    if not files:
+        return None
+    return sorted(files, key=lambda p: p.stat().st_mtime)[-1]
 
 
 def main():
