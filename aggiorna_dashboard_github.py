@@ -115,9 +115,11 @@ def parse_report_dynamic(path):
         [f"{year-1}/{week_2}", "ASS", "STRAD"],
         [f"{year-1}/{week_1}", "ASS", "STRAD"],
     ])
-    c_sost_week = first_match(["SOST. FAMILY", ["SOST", "FAMILY"]], after=(c_ass_ly or c_ass_week or 0))
-    c_up_eu_week = first_match(["UPSELL. EU", ["UPSELL", "EU"], ["UP", "EU"]], after=(c_sost_week or 0))
+    week_after = (c_ass_ly or c_ass_week or 0)
+    c_up_eu_week = first_match(["UPSELL. EU", ["UPSELL", "EU"], ["UP", "EU"]], after=week_after)
+    c_sost_week = first_match(["SOST. FAMILY", ["SOST", "FAMILY"]], after=week_after)
     c_sost_family_week = c_sost_week
+
     c_tot_sales = first_match([
         f"TOTALE VENDITE TELEPASS {year}",
         [str(year), "TOTALE", "VENDITE", "TELEPASS"],
@@ -132,9 +134,10 @@ def parse_report_dynamic(path):
     c_tot_bus = first_match(["DI CUI BUSINESS", ["BUSINESS"]], after=(c_tot_twin or c_tot_sales_prev or c_tot_sales or 0))
     c_tot_ass = first_match([f"TOTALE ASS. STRAD. {year}", [str(year), "TOTALE", "ASS", "STRAD"]])
     c_tot_ass_prev = first_match([f"TOTALE ASS. STRAD. {year-1}", [str(year-1), "TOTALE", "ASS", "STRAD"]])
-    c_tot_sost = first_match(["SOST. FAMILY", ["SOST", "FAMILY"]], after=(c_tot_ass_prev or c_tot_ass or 0))
-    c_tot_up_eu = first_match(["UPSELL. EU", ["UPSELL", "EU"], ["UP", "EU"]], after=(c_tot_sost or 0))
-    c_tot_sost_family = c_tot_sost
+    totals_after = (c_tot_ass_prev or c_tot_ass or 0)
+    c_tot_sost = first_match(["SOST.", ["SOST"]], after=totals_after)
+    c_tot_up_eu = first_match(["UPSELL. EU", ["UPSELL", "EU"], ["UP", "EU"]], after=totals_after)
+    c_tot_sost_family = first_match(["SOST. FAMILY", ["SOST", "FAMILY"]], after=totals_after)
 
     recs = []
     for row in ws.iter_rows(min_row=5, values_only=True):
