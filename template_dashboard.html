@@ -77,7 +77,7 @@ td.num,th.num{text-align:right}
 .week-table table{min-width:820px}
 .comment-box{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{background:#f1f5fb;border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-weight:700;font-size:12px}
+.chip{background:#f1f5fb;border:1px solid var(--line);border-radius:999px;padding:10px 14px;font-weight:800;font-size:16px}
 .file-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .empty{padding:14px;border:1px dashed var(--line);border-radius:14px;background:#fff}
 .export-note{font-size:12px;color:var(--muted);margin-top:8px;text-align:right}
@@ -91,7 +91,7 @@ td.num,th.num{text-align:right}
   <div class="wrap">
     <div class="brand">Telepass ENI</div>
     <div class="nav">
-      <button class="active" data-page="home" onclick="showPage('home', this)">Home</button>
+      <button class="active" data-page="home" onclick="resetFilters()">Home</button>
       <button data-page="classifica" onclick="showPage('classifica', this)">Classifica</button>
       <button data-page="gare-pdv" onclick="showPage('gare-pdv', this)">Gare PDV</button>
       <button data-page="gare-agenti" onclick="showPage('gare-agenti', this)">Gare agenti</button>
@@ -205,7 +205,7 @@ let selectedPdv = null;
 function fmtNum(v){ if(v===null || v===undefined || v==='') return '-'; return Number(v).toLocaleString('it-IT'); }
 function fmtChangePct(v){ if(v===null || v===undefined || v==='') return '-'; return `${Number(v).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`; }
 function fmtRate(v){ if(v===null || v===undefined || v==='') return '-'; return `${Number(v).toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1})}%`; }
-function esc(t){ return String(t ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
+function esc(t){ return String(t ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('\"','&quot;'); }
 function badge(s){ const c=(s||'').toLowerCase().replaceAll(' ','-'); return `<span class="badge ${c}">${esc(s||'-')}</span>`; }
 function toneFromPct(pct, good=0, warn=-5){ if(pct===null || pct===undefined) return ''; if(pct>=good) return 'tone-good'; if(pct<=warn) return 'tone-bad'; return 'tone-warn'; }
 function toneFromRate(rate, good, warn){ if(rate===null || rate===undefined) return ''; if(rate>=good) return 'tone-good'; if(rate<warn) return 'tone-bad'; return 'tone-warn'; }
@@ -373,8 +373,7 @@ function renderSinglePdv(){
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
         <button class="btn ghost small" onclick="showPage('classifica')">← Torna alla classifica</button>
-        <div>${badge(r.status)}</div>
-      </div>
+        </div>
 
       <div class="header">
         <div>
@@ -611,8 +610,7 @@ function pdvPrintHtml(r, withCharts){
         <div style="color:#5d6b82;margin-top:4px">${esc(r.address||'')}</div>
         <div style="margin-top:8px"><b>Agente:</b> ${esc(r.agent)} · <b>CR:</b> ${esc(r.cr)} · <b>RZV:</b> ${esc(r.rzv)}</div>
       </div>
-      <div>${badge(r.status)}</div>
-    </div>
+      </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
       <div>${miniBar('Vendite',r.ytd?.sales_2026||0,r.ytd?.sales_2025||0)}${miniBar('Assistenze',r.ytd?.assist_2026||0,r.ytd?.assist_2025||0)}</div>
       <div>
@@ -681,8 +679,7 @@ function singlePdvPrintCompactHtml(r, withCharts){
           <div class="muted">${esc(r.address||'')}</div>
           <div class="sub"><b>Agente:</b> ${esc(r.agent)} · <b>CR:</b> ${esc(r.cr)} · <b>RZV:</b> ${esc(r.rzv)}</div>
         </div>
-        <div>${badge(r.status)}</div>
-      </div>
+        </div>
 
       <div class="grid">
         <div>
@@ -774,3 +771,4 @@ renderFiles();
 </script>
 </body>
 </html>
+
