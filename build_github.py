@@ -9,6 +9,7 @@ LISTA_DIR = ROOT / 'input' / 'lista'
 ANAG_DIR = ROOT / 'input' / 'anagrafica'
 REPORT_DIR = ROOT / 'input' / 'report_settimanali'
 OUT_DIR = ROOT / 'docs'
+SITE_NAME = 'Report Telepass ENI 2026'
 
 
 def first_xlsx(folder: Path):
@@ -153,6 +154,8 @@ def add_address_to_custom_report(custom_report, lista_map):
 
 def patch_html_address_display(html):
     patches = [
+        ('<title>Telepass ENI</title>', f'<title>{SITE_NAME}</title>'),
+        ('<div class="brand">Telepass ENI</div>', f'<div class="brand">{SITE_NAME}</div>'),
         (
             '.small-muted{color:var(--muted);font-size:12px;line-height:1.3}',
             '.small-muted{color:var(--muted);font-size:12px;line-height:1.3}\n.city-cell{min-width:120px}.city-main{font-weight:800}.city-address{color:var(--muted);font-size:10px;line-height:1.2;margin-top:2px;max-width:170px}'
