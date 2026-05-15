@@ -59,13 +59,7 @@ def make_zero_record_from_lista(pdv, lista_info, anag_info, year, week):
 
 
 def add_missing_lista_pdv_to_current_week(records, lista_map, anag_map):
-    """Fa vedere anche i PDV presenti in LISTA ma assenti dai report settimana.
-
-    Prima la dashboard partiva solo dai report settimanali: un nuovo PDV appena
-    inserito in LISTA, ma non ancora produttivo/non ancora presente nel file
-    settimana, non veniva mai aggiunto a classifica, filtri ed export.
-    Qui creiamo una riga a zero per la settimana corrente, così rimane visibile.
-    """
+    """Fa vedere anche i PDV presenti in LISTA ma assenti dai report settimana."""
     if not records:
         return records, []
 
@@ -97,6 +91,96 @@ def mark_lista_only_rows(current, added_pdv):
         if row.get('pdv') in added:
             row['stato'] = 'Da seguire'
             row['motivi'] = [note]
+
+
+def create_mobile_workbook_with_address(rows, out_path, title, current_week, filter_text):
+    wb = base.Workbook()
+    ws = wb.active
+    ws.title = 'HOME'
+    ws.sheet_view.showGridLines = False
+    ws.merge_cells('A1:F1')
+    ws['A1'] = title
+    ws['A1'].fill = base.PatternFill('solid', fgColor=base.BLUE)
+    ws['A1'].font = base.Font(size=18, bold=True, color='FFFFFF')
+    ws['A1'].alignment = base.Alignment(horizontal='center')
+    ws.row_dimensions[1].height = 28
+    ws['A3'] = 'Filtro'
+    ws['B3'] = filter_text
+    ws['A4'] = 'Settimana attuale'
+    ws['B4'] = f'W{current_week:02d}'
+
+    cards = [
+        ('PDV', len(rows), base.LIGHT),
+        ('Vendite 2026', sum(r['tot_vendite_anno'] or 0 for r in rows), 'EAF2FF'),
+        ('Prospect 2026', sum(r['prospect_ytd_calc'] or 0 for r in rows), 'E8F7EC'),
+        ('Assistenze 2026', sum(r['tot_ass_anno'] or 0 for r in rows), 'FFF4E5'),
+    ]
+    for idx, (label, val, fill) in enumerate(cards, 1):
+        ws.cell(6, idx, label)
+        ws.cell(7, idx, val)
+        ws.cell(6, idx).font = base.Font(bold=True, color=base.BLUE)
+        ws.cell(7, idx).font = base.Font(bold=True, size=20, color=base.BLUE)
+        ws.cell(6, idx).fill = base.PatternFill('solid', fgColor=fill.replace('#', ''))
+        ws.cell(7, idx).fill = base.PatternFill('solid', fgColor=fill.replace('#', ''))
+        ws.cell(6, idx).alignment = base.Alignment(horizontal='center')
+        ws.cell(7, idx).alignment = base.Alignment(horizontal='center')
+
+    headers = ['PDV', 'Città', 'Indirizzo', 'Agente', 'CR', 'Vend 2026', 'Vend 2025', 'Ass 2026', 'Ass 2025', 'Prospect', 'Twin', 'Business', 'Sost anno', 'UP EU', 'Stato']
+    data = []
+    for r in rows:
+        data.append([
+            r.get('pdv'), r.get('citta'), r.get('indirizzo'), r.get('agente'), r.get('cr'),
+            r.get('tot_vendite_anno'), r.get('tot_vendite_anno_prec'), r.get('tot_ass_anno'), r.get('tot_ass_anno_prec'),
+            r.get('prospect_ytd_calc'), r.get('twin_ytd_calc'), r.get('business_ytd_calc'), r.get('tot_sost_family_anno'), r.get('tot_upgrade_eu_anno'), r.get('stato')
+        ])
+    base.add_table(ws, 10, 1, headers, data, 'Report')
+    for row in range(11, ws.max_row + 1):
+        for col in range(6, 15):
+            ws.cell(row, col).number_format = '#,##0'
+    ws.freeze_panes = 'A10'
+    base.style_sheet(ws)
+    base.autosize(ws, max_width=28)
+    wb.save(out_path)
+
+
+def add_address_to_custom_report(custom_report, lista_map):
+    if not custom_report:
+        return custom_report
+    for row in custom_report.get('rows', []):
+        row['address'] = lista_map.get(row.get('pdv'), {}).get('lista_indirizzo', '') or ''
+    return custom_report
+
+
+def patch_html_address_display(html):
+    patches = [
+        (
+            '.small-muted{color:var(--muted);font-size:12px;line-height:1.3}',
+            '.small-muted{color:var(--muted);font-size:12px;line-height:1.3}\n.city-cell{min-width:120px}.city-main{font-weight:800}.city-address{color:var(--muted);font-size:10px;line-height:1.2;margin-top:2px;max-width:170px}'
+        ),
+        ('Cerca PDV, città, agente, CR...', 'Cerca PDV, città, via, agente, CR...'),
+        (
+            '<td>${esc(r.city)}</td>',
+            '<td><div class="city-cell"><div class="city-main">${esc(r.city)}</div>${r.address ? \'<div class="city-address">\' + esc(r.address) + \'</div>\' : \'\'}</div></td>'
+        ),
+        (
+            'r.rank_sales, r.pdv, r.city, r.agent, r.cr, r.rzv,',
+            "r.rank_sales, r.pdv, r.city, r.address||'', r.agent, r.cr, r.rzv,"
+        ),
+        (
+            "return filteredCustomRows().map(r=>[r.rank,r.pdv,r.city,r.agent||'',r.cr||'',r.rzv||'',...(r.values||[]),r.total]);",
+            "return filteredCustomRows().map(r=>[r.rank,r.pdv,r.city,r.address||'',r.agent||'',r.cr||'',r.rzv||'',...(r.values||[]),r.total]);"
+        ),
+        (
+            "return [[\n    r.pdv, r.city, r.agent, r.cr, r.rzv,",
+            "return [[\n    r.pdv, r.city, r.address||'', r.agent, r.cr, r.rzv,"
+        ),
+        ("['#','PDV','Città','Agente','CR','RZV',", "['#','PDV','Città','Indirizzo','Agente','CR','RZV',"),
+        ("['PDV','Città','Agente','CR','RZV',", "['PDV','Città','Indirizzo','Agente','CR','RZV',"),
+        ("const headers=['#','PDV','Città','Agente','CR','RZV',", "const headers=['#','PDV','Città','Indirizzo','Agente','CR','RZV',"),
+    ]
+    for old, new in patches:
+        html = html.replace(old, new)
+    return html
 
 
 def run_dashboard(lista, anag, report_dir, out_dir):
@@ -136,17 +220,20 @@ def run_dashboard(lista, anag, report_dir, out_dir):
 
     summary = base.build_summary(current)
     base.os.makedirs(base.os.path.join(out_dir, 'files'), exist_ok=True)
+
+    base.create_mobile_workbook = create_mobile_workbook_with_address
     export_manifest = base.build_export_reports(str(out_dir), current, current_yearweek[1])
     file_utili = base.copy_file_utili(str(out_dir))
 
     data = base.build_data_for_html(current, hist, summary, export_manifest, file_utili, current_yearweek[1], current_yearweek[0])
     data['gare_pdv'] = config.get('gare_pdv', [])
     data['gare_agenti'] = config.get('gare_agenti', [])
-    data['custom_report'] = gh.load_custom_report(base.BASE_DIR, lista_map, anag_map, str(out_dir))
+    data['custom_report'] = add_address_to_custom_report(gh.load_custom_report(base.BASE_DIR, lista_map, anag_map, str(out_dir)), lista_map)
 
     html_path = base.os.path.join(out_dir, 'Telepass_ENI_sito_v6.html')
+    html = patch_html_address_display(gh.build_html(data))
     with open(html_path, 'w', encoding='utf-8') as f:
-        f.write(gh.build_html(data))
+        f.write(html)
 
     master_xlsx = base.os.path.join(out_dir, 'Dati_Telepass_ENI_v6.xlsx')
     base.build_master_workbook(master_xlsx, current, records, {'selected_year': scan['selected_year'], 'current_week': current_yearweek[1]})
@@ -170,7 +257,7 @@ def run_dashboard(lista, anag, report_dir, out_dir):
             for pdv in lista_only_pdv:
                 li = lista_map.get(pdv, {})
                 an = anag_map.get(pdv, {})
-                f.write(f'{pdv} -> {li.get("lista_citta", "")} | Agente: {li.get("agente", "")} | CR: {an.get("cr", "")} | RZV: {an.get("rzv", "")}\n')
+                f.write(f'{pdv} -> {li.get("lista_citta", "")} | {li.get("lista_indirizzo", "")} | Agente: {li.get("agente", "")} | CR: {an.get("cr", "")} | RZV: {an.get("rzv", "")}\n')
         else:
             f.write('Nessuno. Tutti i PDV della lista sono presenti nel report corrente.\n')
 
