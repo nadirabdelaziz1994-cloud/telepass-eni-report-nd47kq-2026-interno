@@ -18,6 +18,7 @@ FILE REPORT TROVATI E USATI
 2026/W16 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 16.xlsx
 2026/W17 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 17.xlsx
 2026/W18 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 18.xlsx
+2026/W19 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 19.xlsx
 
 CUSTOM REPORT
 =============
@@ -27,10 +28,8 @@ PDV AGGIUNTI DA LISTA PDV ENI
 =============================
 02667 -> PIACENZA | VIA MANFREDI 74 | Agente: Nadir Abdel | CR: GIURICIN ANTONIO | RZV: SAGLIMBENI GIUSEPPE CRISTIAN
 05920 -> FORLI' | S.S. 9 KM 46 | Agente: Tino Vincenzo | CR:  | RZV: 
-14289 -> SAN DANIELE DEL FRIULI | VIA VENEZIA SS 463 KM. 17+262 89/91 | Agente: Fabio Villa | CR: FELICI FILIPPO | RZV: MAIOLINI OMAR
 16435 -> CORREGGIO | VIA SS468 | Agente: Nadir Abdel | CR: IACOPINI ALESSANDRA | RZV: FIORINI LUCA
 22973 -> FIDENZA | LOC SAN MICHELE  | Agente: Nadir Abdel | CR: IACOPINI ALESSANDRA | RZV: FIORINI LUCA
-23973 -> MUSSOLENTE | VIA DANTE ALIGHIERI 8 | Agente: Fabio Villa | CR: CARRARO COSA MIHAI EMILIAN | RZV: DALLE CESTE MARLIS
 
 SETTIMANE MANCANTI
 ==================
