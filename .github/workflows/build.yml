@@ -24,7 +24,7 @@ jobs:
 
       - name: Build site
         run: |
-          python build_github.py
+          python build_bundle.py
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -39,7 +39,6 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Deploy to GitHub Pages
