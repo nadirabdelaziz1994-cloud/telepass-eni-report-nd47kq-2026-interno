@@ -190,7 +190,6 @@ function bundleDetailHtml(r){
       <div class="metric-card"><h4>Bundle<br>completi</h4><div class="metric-big">${fmtNum(b.bundle)}</div><div class="metric-sub">Su ${fmtNum(b.prospect)} prospect</div></div>
       <div class="metric-card"><h4>Vendite periodo</h4><div class="metric-big">${fmtNum(b.sales_total)}</div><div class="metric-sub">Twin: ${fmtNum(b.twin)}</div></div>
     </div>
-    <div class="small-muted" style="margin-top:8px">Dato temporaneo da file Bundle. Prodotto singolo = 6 mesi gratis · Base + Assistenza Stradale + Twin insieme = 1 anno gratis.</div>
   </div>`;
 }
 '''
@@ -216,8 +215,7 @@ function renderGarePdv(){
   w.innerHTML=`<div class="card">
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div><div class="section-title" style="margin:0 0 6px 0">${esc(rep.title||'Bundle')}</div>
-      <div class="small-muted">Aggiornato: ${esc(rep.updated_at||'')} · PDV filtrati: ${fmtNum(rows.length)} · File: ${esc(rep.source_name||'')}</div>
-      <div class="small-muted" style="margin-top:4px">Prodotto singolo = 6 mesi gratis · Bundle Base + Assistenza Stradale + Twin = 1 anno gratis.</div></div>
+      <div class="small-muted">Aggiornato: ${esc(rep.updated_at||'')} · PDV filtrati: ${fmtNum(rows.length)} · File: ${esc(rep.source_name||'')}</div></div>
       <button class="btn light" onclick="downloadFilteredCustomReportCsv()">Scarica Bundle filtrato</button>
     </div>
     <div class="metric-row sost" style="margin-top:12px">
