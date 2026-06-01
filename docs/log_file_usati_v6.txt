@@ -20,10 +20,11 @@ FILE REPORT TROVATI E USATI
 2026/W18 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 18.xlsx
 2026/W19 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 19.xlsx
 2026/W20 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 20.xlsx
+2026/W21 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 21.xlsx
 
 CUSTOM REPORT
 =============
-/home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/custom_report/Custom Report Rete Proximity - 7 maggio 2026.xlsx
+/home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/custom_report/Bundle.xlsx
 
 PDV AGGIUNTI DA LISTA PDV ENI
 =============================
