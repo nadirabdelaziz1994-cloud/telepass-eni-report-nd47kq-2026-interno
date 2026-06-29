@@ -34,6 +34,7 @@ jobs:
           if ls input/anagrafica/*.xlsx >/dev/null 2>&1; then
             python scripts/planning_patch_runner.py
             python scripts/planning_scope_patch.py
+            python scripts/planning_cloudflare_patch.py
           else
             echo "Planning automatico saltato: nessun file .xlsx in input/anagrafica"
           fi
