@@ -57,6 +57,12 @@ def main():
     except Exception as exc:
         raise RuntimeError(f"Errore patch trasferte: {exc}") from exc
 
+    try:
+        from planning_transferte_limit_patch import main as transferte_limit_main
+        transferte_limit_main()
+    except Exception as exc:
+        raise RuntimeError(f"Errore limite giorni trasferta: {exc}") from exc
+
 
 if __name__ == "__main__":
     main()
