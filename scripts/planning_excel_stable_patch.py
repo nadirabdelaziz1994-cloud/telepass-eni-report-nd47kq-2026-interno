@@ -69,6 +69,12 @@ def main():
     except Exception as exc:
         raise RuntimeError(f"Errore overflow safe planning: {exc}") from exc
 
+    try:
+        from planning_capacity_patch import main as capacity_main
+        capacity_main()
+    except Exception as exc:
+        raise RuntimeError(f"Errore capacity planning: {exc}") from exc
+
 
 if __name__ == "__main__":
     main()
