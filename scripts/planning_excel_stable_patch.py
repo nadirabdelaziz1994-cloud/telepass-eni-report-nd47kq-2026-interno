@@ -51,6 +51,12 @@ def main():
     except Exception as exc:
         raise RuntimeError(f"Errore export XLSX reale: {exc}") from exc
 
+    try:
+        from planning_transferte_patch import main as transferte_main
+        transferte_main()
+    except Exception as exc:
+        raise RuntimeError(f"Errore patch trasferte: {exc}") from exc
+
 
 if __name__ == "__main__":
     main()
