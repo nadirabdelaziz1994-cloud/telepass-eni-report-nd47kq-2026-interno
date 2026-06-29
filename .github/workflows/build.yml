@@ -31,7 +31,11 @@ jobs:
         run: |
           python build_bundle.py
           python scripts/grab_go_patch.py
-          echo "Planning automatico temporaneamente disattivato per ripristino sito"
+          if ls input/anagrafica/*.xlsx >/dev/null 2>&1; then
+            python scripts/planning_standalone.py
+          else
+            echo "Planning standalone saltato: nessun file .xlsx in input/anagrafica"
+          fi
 
       - name: Commit generated docs
         run: |
