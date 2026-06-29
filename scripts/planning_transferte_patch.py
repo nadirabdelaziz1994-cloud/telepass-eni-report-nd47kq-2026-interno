@@ -57,11 +57,11 @@ PATCH_JS = r'''
     let open=false,daysInBlock=new Set();
     function marker(txt){return {kind:'marker',row:[txt,'','','','','','','','','','','','','']};}
     PLAN.forEach((p,idx)=>{
-      const tr=isTrasfertaPoint(p);
+      const tr=max>0 && isTrasfertaPoint(p);
       if(tr){
         if(!open){meta.push(marker('INIZIO TRASFERTA'));open=true;daysInBlock=new Set();}
         daysInBlock.add(p.date);
-        if(max && daysInBlock.size>max){meta.push(marker('FINE TRASFERTA'));meta.push(marker('INIZIO TRASFERTA'));daysInBlock=new Set([p.date]);}
+        if(daysInBlock.size>max){meta.push(marker('FINE TRASFERTA'));open=false;}
       }else if(open){meta.push(marker('FINE TRASFERTA'));open=false;daysInBlock=new Set();}
       meta.push({kind:'data',plan:p,row:[weekNum(p.date),p.dateOnly,'',p.pdv,acVal(p),p.rzv||'',p.cr||'',p.region||'',p.province||'',p.city||'',p.address||'',p.focal||'',p.agent_display||document.getElementById('agent').value,'']});
       if(open && idx===PLAN.length-1){meta.push(marker('FINE TRASFERTA'));open=false;}
@@ -69,6 +69,21 @@ PATCH_JS = r'''
     return meta;
   };
 })();
+</script>
+'''
+
+RESET_JS = r'''
+<script>
+window.addEventListener('pageshow', function(){
+  try{
+    const agent=document.getElementById('agent'); if(agent) agent.value='';
+    const start=document.getElementById('start'); if(start) start.value='';
+    const grab=document.getElementById('grab'); if(grab) grab.value='no';
+    const trip=document.getElementById('tripDays'); if(trip) trip.value='';
+    PLAN=[]; PREV={};
+    const result=document.getElementById('result'); if(result) result.innerHTML='';
+  }catch(e){}
+});
 </script>
 '''
 
@@ -92,10 +107,13 @@ def main():
     html = html.replace('<button class="btn light" onclick="downloadCsv()">Scarica CSV</button>', '')
     target = '<div><label>Planning precedente</label><input id="prev" type="file" accept=".csv,.txt,.xls"></div>'
     if 'id="tripDays"' not in html and target in html:
-        html = html.replace(target, '<div><label>Giorni max trasferta</label><input id="tripDays" type="number" min="1" max="31" value="5" placeholder="es. 5"></div>' + target, 1)
+        html = html.replace(target, '<div><label>Giorni max trasferta</label><input id="tripDays" type="number" min="0" max="31" value="" placeholder="0 = nessuna"></div>' + target, 1)
+    html = html.replace('id="tripDays" type="number" min="1" max="31" value="5" placeholder="es. 5"', 'id="tripDays" type="number" min="0" max="31" value="" placeholder="0 = nessuna"')
     html = replace_between(html, "function downloadXls(){", "function parsePrev(t)", DOWNLOAD_XLS)
     if "function maxTripDays()" not in html:
         html = html.replace("</body>", PATCH_JS + "\n</body>", 1)
+    if "pageshow" not in html:
+        html = html.replace("</body>", RESET_JS + "\n</body>", 1)
     path.write_text(html, encoding="utf-8")
     print("Patch trasferte/excel applicata")
 
