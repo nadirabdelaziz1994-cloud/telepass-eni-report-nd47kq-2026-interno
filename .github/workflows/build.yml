@@ -31,7 +31,11 @@ jobs:
         run: |
           python build_bundle.py
           python scripts/grab_go_patch.py
-          python scripts/planning_patch.py
+          if ls input/anagrafica/*.xlsx >/dev/null 2>&1; then
+            python scripts/planning_patch.py
+          else
+            echo "Planning automatico saltato: nessun file .xlsx in input/anagrafica"
+          fi
 
       - name: Commit generated docs
         run: |
