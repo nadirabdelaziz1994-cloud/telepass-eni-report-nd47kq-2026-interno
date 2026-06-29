@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -34,7 +36,6 @@ jobs:
           if ls input/anagrafica/*.xlsx >/dev/null 2>&1; then
             python scripts/planning_standalone.py
             python scripts/planning_nadir_alias_patch.py
-            python scripts/planning_xlsx_type_patch.py
           else
             echo "Planning standalone saltato: nessun file .xlsx in input/anagrafica"
           fi
@@ -48,6 +49,7 @@ jobs:
             echo "No generated docs changes"
           else
             git commit -m "Build generated site"
+            git pull --rebase origin main
             git push
           fi
 
