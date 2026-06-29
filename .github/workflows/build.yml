@@ -25,6 +25,7 @@ jobs:
       - name: Build site
         run: |
           python build_bundle.py
+          python scripts/grab_go_patch.py
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
