@@ -12,6 +12,11 @@ NEW_EXPORT_ROWS_META = r'''window.exportRowsMeta = exportRowsMeta = function(){
     function areaKey(p){return norm(p.region||p.province||p.city||'');}
     function areaLabel(p){return p.region||p.province||p.city||'';}
 
+    if(!max || max <= 0){
+      PLAN.forEach(p=>meta.push(dataRow(p)));
+      return meta;
+    }
+
     const areas={};
     PLAN.forEach(p=>{
       if(!isTrasfertaPoint(p)) return;
@@ -31,7 +36,7 @@ NEW_EXPORT_ROWS_META = r'''window.exportRowsMeta = exportRowsMeta = function(){
       if(b.dates.length!==a.dates.length) return b.dates.length-a.dates.length;
       return b.distance-a.distance;
     })[0];
-    const selectedDates = new Set(best ? (max ? best.dates.slice(0,max) : best.dates) : []);
+    const selectedDates = new Set(best ? best.dates.slice(0,max) : []);
     const selectedArea = best ? best.key : '';
 
     let first=-1,last=-1;
@@ -68,7 +73,7 @@ def main():
         raise RuntimeError("fine exportRowsMeta non trovata")
     html = html[:start] + NEW_EXPORT_ROWS_META + html[end:]
     path.write_text(html, encoding="utf-8")
-    print("Trasferta scelta sulla regione lontana con più PV")
+    print("Trasferta disattivata se limite vuoto o zero")
 
 
 if __name__ == "__main__":
