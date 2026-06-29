@@ -47,7 +47,7 @@ def main():
     if start == -1:
         print("exportRowsMeta non trovato: patch limite trasferte saltata")
         return
-    end_marker = "\n  };\n})();\n</script>"
+    end_marker = "\n})();\n</script>"
     end = html.find(end_marker, start)
     if end == -1:
         raise RuntimeError("fine exportRowsMeta non trovata")
