@@ -24,6 +24,7 @@ FILE REPORT TROVATI E USATI
 2026/W22 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 22.xlsx
 2026/W23 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 23.xlsx
 2026/W24 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 24.xlsx
+2026/W25 -> /home/runner/work/telepass-eni-report-nd47kq-2026-interno/telepass-eni-report-nd47kq-2026-interno/input/report_settimanali/2026/SETTIMANA 25.xlsx
 
 CUSTOM REPORT
 =============
