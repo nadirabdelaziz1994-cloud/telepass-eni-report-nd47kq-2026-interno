@@ -1,0 +1,63 @@
+name: Verifica coordinate Eni
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_path:
+        description: "File Excel da controllare. Lascia vuoto per usare il più recente in input/anagrafica"
+        required: false
+        default: ""
+      max_rows:
+        description: "Numero massimo righe per test. Esempio 20. Lascia vuoto per tutte"
+        required: false
+        default: "20"
+      clear_unverified:
+        description: "Svuota Latitudine/Longitudine se non sono verificate"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install openpyxl
+
+      - name: Verify coordinates with Google
+        env:
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.source_path }}" ]; then
+            ARGS="$ARGS --source '${{ inputs.source_path }}'"
+          fi
+          if [ -n "${{ inputs.max_rows }}" ]; then
+            ARGS="$ARGS --max-rows '${{ inputs.max_rows }}'"
+          fi
+          if [ "${{ inputs.clear_unverified }}" = "true" ]; then
+            ARGS="$ARGS --clear-unverified"
+          fi
+          python scripts/verify_eni_coordinates.py $ARGS
+
+      - name: Upload file finale
+        uses: actions/upload-artifact@v4
+        with:
+          name: anagrafica-coordinate-verificate
+          path: |
+            output/anagrafica/*.xlsx
+            output/anagrafica/*.json
+          if-no-files-found: error
