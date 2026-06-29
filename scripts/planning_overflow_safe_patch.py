@@ -33,13 +33,14 @@ PATCH_JS = r'''
     return s;
   }
   window.workdays = workdays = function(mv){
-    const [y,m]=mv.split('-').map(Number);
+    const [y,m]=String(mv||'').split('-').map(Number);
+    if(!y||!m)return [];
     const closed=closureSet(y);
     const days=[];
     let d=new Date(y,m-1,1), guard=0;
     while(days.length<260 && guard<540){
       const dow=d.getDay(), id=iso(d);
-      if(dow!==0 && dow!==6 && !closed.has(id))days.push(id);
+      if(dow!==0 && dow!==6 && !closed.has(id))days.push(new Date(d));
       d.setDate(d.getDate()+1); guard++;
     }
     return days;
