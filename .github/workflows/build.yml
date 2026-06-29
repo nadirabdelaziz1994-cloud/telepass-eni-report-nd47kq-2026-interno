@@ -32,6 +32,14 @@ jobs:
           python build_bundle.py
           python scripts/grab_go_patch.py
           if ls input/anagrafica/*.xlsx >/dev/null 2>&1; then
+            python - <<'PY'
+            from pathlib import Path
+            p = Path('scripts/planning_patch.py')
+            s = p.read_text(encoding='utf-8')
+            s = s.replace('min(ws.max_row, 20) + 1', 'min(ws.max_row or 20, 20) + 1')
+            s = s.replace('range(1, ws.max_column + 1)', 'range(1, (ws.max_column or 80) + 1)')
+            p.write_text(s, encoding='utf-8')
+            PY
             python scripts/planning_patch.py
           else
             echo "Planning automatico saltato: nessun file .xlsx in input/anagrafica"
