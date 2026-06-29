@@ -72,12 +72,18 @@ def main():
         print("planning.html non trovato, patch saltata")
         return
     html = path.read_text(encoding="utf-8")
-    if "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in html and "crc32buf" in html:
+    if not ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in html and "crc32buf" in html):
+        html = replace_between(html, "function downloadXls(){", "function parsePrev(t)", XLSX_DOWNLOAD)
+        path.write_text(html, encoding="utf-8")
+        print("Export XLSX reale applicato")
+    else:
         print("Export XLSX reale già presente")
-        return
-    html = replace_between(html, "function downloadXls(){", "function parsePrev(t)", XLSX_DOWNLOAD)
-    path.write_text(html, encoding="utf-8")
-    print("Export XLSX reale applicato")
+
+    try:
+        from planning_transferte_patch import main as transferte_main
+        transferte_main()
+    except Exception as exc:
+        raise RuntimeError(f"Errore patch trasferte: {exc}") from exc
 
 
 if __name__ == "__main__":
