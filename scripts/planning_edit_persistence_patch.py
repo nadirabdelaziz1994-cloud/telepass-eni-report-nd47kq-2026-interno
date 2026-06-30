@@ -36,7 +36,7 @@ PATCH = r'''
   }
   window.downloadEditablePlanning = downloadEditablePlanning = function(){
     const payload=currentPlanPayload();
-    if(!payload.plan||!payload.plan.length){alert('Prima crea o carica un planning');return;}
+    if(!payload.plan||!payload.plan.length){alert('Prima crea o carica un planning');return false;}
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     const a=document.createElement('a');
     const agent=(payload.agent||'planning').replace(/[^a-z0-9]+/gi,'_');
@@ -45,6 +45,14 @@ PATCH = r'''
     a.download='planning_modificabile_'+agent+'_'+month+'.json';
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    return true;
+  };
+  window.downloadExcelAndEditable = downloadExcelAndEditable = function(){
+    const payload=currentPlanPayload();
+    if(!payload.plan||!payload.plan.length){alert('Prima crea o carica un planning');return;}
+    try{sessionStorage.setItem('planningCurrent',JSON.stringify(payload));}catch(e){}
+    if(typeof downloadXls==='function')downloadXls();else alert('Funzione Excel non trovata');
+    setTimeout(()=>downloadEditablePlanning(),500);
   };
   window.openEditablePlanningFile = openEditablePlanningFile = function(){
     const inp=document.getElementById('editablePlanningFile');
@@ -64,12 +72,20 @@ PATCH = r'''
     input.value='';
   };
   function ensureButtons(){
+    const buttons=[...document.querySelectorAll('button')];
+    const excel=buttons.find(b=>(b.textContent||'').toLowerCase().includes('scarica excel'));
+    if(excel&&!excel.dataset.comboDone){
+      excel.textContent='Scarica Excel + file modificabile';
+      excel.onclick=function(e){e.preventDefault();downloadExcelAndEditable();};
+      excel.dataset.comboDone='1';
+    }
+    const oldEditable=[...document.querySelectorAll('button')].find(b=>(b.textContent||'').toLowerCase().includes('scarica planning modificabile'));
+    if(oldEditable)oldEditable.remove();
     if(document.getElementById('editablePlanningButtons'))return;
-    const excel=[...document.querySelectorAll('button')].find(b=>(b.textContent||'').toLowerCase().includes('scarica excel'));
     const box=document.createElement('div');
     box.id='editablePlanningButtons';
     box.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin-top:10px';
-    box.innerHTML='<button class="btn light" type="button" onclick="downloadEditablePlanning()">Scarica planning modificabile</button><button class="btn light" type="button" onclick="openEditablePlanningFile()">Modifica planning creato</button><input id="editablePlanningFile" type="file" accept=".json,application/json" style="display:none" onchange="importEditablePlanning(this)">';
+    box.innerHTML='<button class="btn light" type="button" onclick="openEditablePlanningFile()">Modifica planning creato</button><input id="editablePlanningFile" type="file" accept=".json,application/json" style="display:none" onchange="importEditablePlanning(this)">';
     if(excel&&excel.parentElement)excel.parentElement.appendChild(box);else document.body.appendChild(box);
   }
   const oldOpen=window.openPlanningEditor;
@@ -77,8 +93,8 @@ PATCH = r'''
     try{sessionStorage.setItem('planningCurrent',JSON.stringify(currentPlanPayload()));}catch(e){}
     if(typeof oldOpen==='function')oldOpen();else location.href='./planning-edit.html?v=edit';
   };
-  window.addEventListener('pageshow',function(){ensureButtons();setTimeout(()=>restorePlanFromStorage(location.href.includes('edit-return')),80);setTimeout(()=>restorePlanFromStorage(location.href.includes('edit-return')),350);});
-  window.addEventListener('load',function(){ensureButtons();setTimeout(()=>restorePlanFromStorage(location.href.includes('edit-return')),120);setTimeout(()=>restorePlanFromStorage(location.href.includes('edit-return')),600);});
+  window.addEventListener('pageshow',function(){ensureButtons();setTimeout(ensureButtons,250);setTimeout(()=>restorePlanFromStorage(location.href.includes('edit-return')),80);setTimeout(()=>restorePlanFromStorage(location.href.includes('edit-return')),350);});
+  window.addEventListener('load',function(){ensureButtons();setTimeout(ensureButtons,300);setTimeout(()=>restorePlanFromStorage(location.href.includes('edit-return')),120);setTimeout(()=>restorePlanFromStorage(location.href.includes('edit-return')),600);});
 })();
 </script>
 '''
@@ -92,6 +108,10 @@ def main():
     html = path.read_text(encoding="utf-8")
     if 'downloadEditablePlanning' not in html:
         html = html.replace('</body>', PATCH + '\n</body>', 1)
+    else:
+        # Replace previous persistence patch by appending the newer one last so it wins.
+        if 'downloadExcelAndEditable' not in html:
+            html = html.replace('</body>', PATCH + '\n</body>', 1)
     path.write_text(html, encoding="utf-8")
     print("Persistenza planning modificato applicata")
 
