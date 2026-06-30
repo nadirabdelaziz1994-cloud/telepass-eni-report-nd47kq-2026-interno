@@ -1,0 +1,89 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+DOCS_DIR = ROOT / "docs"
+
+CSS = r'''
+<style>
+.day-block{display:grid;grid-template-columns:36px 1fr 120px;gap:6px;align-items:center;background:#0b2d5c;color:white;border-radius:10px;padding:6px;margin:10px 0 5px;position:sticky;top:84px;z-index:2}
+.day-drag{height:32px;width:32px;border-radius:9px;border:1px solid #ffffff55;background:#ffffff18;color:white;font-weight:900;font-size:16px;touch-action:none;user-select:none;-webkit-user-select:none}.day-title{font-weight:900;font-size:13px}.day-title span{font-weight:700;opacity:.8}.day-date{height:32px;border-radius:8px;border:1px solid #ffffff55;background:white;color:#102033;padding:5px;font-size:12px}.day-moving{opacity:.55}.edit-row{margin-left:12px!important;width:calc(100% - 12px)!important}.head-row{top:52px!important}
+</style>
+'''
+
+JS = r'''
+<script>
+(function(){
+  let dayTouchIndex=null;
+  function fmtDateShort(v){try{return new Date(v+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'});}catch(e){return v||'';}}
+  function pClass(p){if(p.is_grab&&p.is_tp)return 'dual';if(p.is_grab)return 'grab';return 'tp';}
+  function pTipo(p){if(p.is_grab&&p.is_tp)return 'Doppio';if(p.is_grab)return 'Grab';return 'TPoint';}
+  function groups(){
+    const out=[];
+    PLAN.forEach((p,idx)=>{
+      const key=p.date||'';
+      let g=out.find(x=>x.date===key);
+      if(!g){g={date:key,items:[]};out.push(g);}
+      g.items.push({p,idx});
+    });
+    return out;
+  }
+  function orderedDateSlots(gs){return gs.map(g=>g.date).filter(Boolean).sort();}
+  function applyBlockDates(order, slots){
+    order.forEach((g,i)=>{
+      const nd=slots[i]||g.date;
+      g.items.forEach(it=>{it.p.date=nd;if(typeof dateLabel==='function')it.p.dateLabel=dateLabel(nd);if(typeof dateOnly==='function')it.p.dateOnly=dateOnly(nd);});
+    });
+  }
+  window.changeBlockDate=function(dayIndex,newDate){
+    const gs=groups();const g=gs[dayIndex];if(!g||!newDate)return;
+    g.items.forEach(it=>{it.p.date=newDate;if(typeof dateLabel==='function')it.p.dateLabel=dateLabel(newDate);if(typeof dateOnly==='function')it.p.dateOnly=dateOnly(newDate);});
+    render();
+  };
+  window.moveDayBlock=function(from,to){
+    const gs=groups();
+    if(from===to||from<0||to<0||from>=gs.length||to>=gs.length)return;
+    const slots=orderedDateSlots(gs);
+    const [g]=gs.splice(from,1);gs.splice(to,0,g);
+    applyBlockDates(gs,slots);
+    PLAN=[];gs.forEach(x=>x.items.forEach(it=>PLAN.push(it.p)));
+    render();
+  };
+  window.dayTouchStart=function(e,i){dayTouchIndex=i;const b=e.currentTarget.closest('.day-block');if(b)b.classList.add('day-moving');e.preventDefault();};
+  window.dayTouchMove=function(e){
+    if(dayTouchIndex==null)return;
+    const t=e.touches[0];const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.day-block');
+    if(!el)return;const j=Number(el.dataset-day);if(Number.isFinite(j)&&j!==dayTouchIndex){moveDayBlock(dayTouchIndex,j);dayTouchIndex=j;}
+    e.preventDefault();
+  };
+  window.dayTouchEnd=function(e){dayTouchIndex=null;document.querySelectorAll('.day-moving').forEach(x=>x.classList.remove('day-moving'));e.preventDefault();};
+  window.render=function(){
+    const box=document.getElementById('list');
+    if(!PLAN.length){box.innerHTML='<div class="card muted">Nessun planning trovato. Torna alla pagina planning e crealo prima.</div>';return;}
+    const gs=groups();let n=0;
+    box.innerHTML='<div class="head-row"><div>↕</div><div>#</div><div>Data</div><div>PV</div><div>Comune</div><div>Via</div><div>Tipo</div><div>X</div></div>'+gs.map((g,di)=>{
+      const head='<div class="day-block" data-day="'+di+'"><button class="day-drag" ontouchstart="dayTouchStart(event,'+di+')" ontouchmove="dayTouchMove(event)" ontouchend="dayTouchEnd(event)">↕</button><div class="day-title">Giorno '+(di+1)+' · '+esc(fmtDateShort(g.date))+' <span>('+g.items.length+' PV)</span></div><input class="day-date" type="date" value="'+esc(g.date||'')+'" onchange="changeBlockDate('+di+',this.value)"></div>';
+      const rows=g.items.map(it=>{const p=it.p,i=it.idx;n++;return '<div class="edit-row '+pClass(p)+'" data-i="'+i+'"><button class="drag" ontouchstart="touchStart(event,'+i+')" ontouchmove="touchMove(event)" ontouchend="touchEnd(event)" onmousedown="dragIndex='+i+'">↕</button><div class="idx">'+n+'</div><input class="date" type="date" value="'+esc(p.date||'')+'" onchange="changeDate('+i+',this.value)"><div class="col"><b>'+esc(p.pdv)+'</b></div><div class="col">'+esc(p.city||'')+'</div><div class="col">'+esc(p.address||'')+'</div><div class="col">'+esc(pTipo(p))+'</div><button class="btn bad x" onclick="del('+i+')">×</button></div>';}).join('');
+      return head+rows;
+    }).join('');
+  };
+  try{render();}catch(e){}
+})();
+</script>
+'''
+
+
+def main():
+    path = DOCS_DIR / "planning-edit.html"
+    if not path.exists():
+        print("planning-edit.html non trovato, dayblock saltato")
+        return
+    html = path.read_text(encoding="utf-8")
+    if 'day-block' not in html:
+        html = html.replace('</head>', CSS + '\n</head>', 1)
+        html = html.replace('</body>', JS + '\n</body>', 1)
+    path.write_text(html, encoding="utf-8")
+    print("Blocchi data trascinabili applicati")
+
+
+if __name__ == "__main__":
+    main()
