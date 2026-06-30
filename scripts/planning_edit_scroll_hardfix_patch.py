@@ -21,11 +21,26 @@ HARD_JS = r'''
 (function(){
   function pClass(p){if(p.is_grab&&p.is_tp)return 'dual';if(p.is_grab)return 'grab';return 'tp';}
   function pTipo(p){if(p.is_grab&&p.is_tp)return 'Doppio';if(p.is_grab)return 'Grab';return 'TPoint';}
+  function syncDate(row, targetIndex){
+    const target=PLAN[targetIndex];
+    if(!row||!target||!target.date)return;
+    row.date=target.date;
+    if(typeof dateLabel==='function')row.dateLabel=dateLabel(target.date);
+    if(typeof dateOnly==='function')row.dateOnly=dateOnly(target.date);
+  }
   window.render = function(){
     const box=document.getElementById('list');
     if(!PLAN.length){box.innerHTML='<div class="card muted">Nessun planning trovato. Torna alla pagina planning e crealo prima.</div>';return;}
-    box.innerHTML='<div class="head-row"><div>↕</div><div>#</div><div>Data</div><div>PV</div><div>Comune</div><div>Via</div><div>Tipo</div><div>X</div></div>'+
+    box.innerHTML='<div class="head-row"><div>↕</div><div>#</div><div>Data</div><div>PV</div><div>Comune</div><div>Via</div><div>Tipo</div><div>X</div></div>'+ 
       PLAN.map((p,i)=>'<div class="edit-row '+pClass(p)+'" data-i="'+i+'"><button class="drag" ontouchstart="touchStart(event,'+i+')" ontouchmove="touchMove(event)" ontouchend="touchEnd(event)" onmousedown="dragIndex='+i+'">↕</button><div class="idx">'+(i+1)+'</div><input class="date" type="date" value="'+esc(p.date||'')+'" onchange="changeDate('+i+',this.value)"><div class="col"><b>'+esc(p.pdv)+'</b></div><div class="col">'+esc(p.city||'')+'</div><div class="col">'+esc(p.address||'')+'</div><div class="col">'+esc(pTipo(p))+'</div><button class="btn bad x" onclick="del('+i+')">×</button></div>').join('');
+  };
+  window.move = function(from,to){
+    if(from===to||from<0||to<0||from>=PLAN.length||to>=PLAN.length)return;
+    const targetDate=PLAN[to]&&PLAN[to].date;
+    const [r]=PLAN.splice(from,1);
+    if(targetDate){r.date=targetDate;if(typeof dateLabel==='function')r.dateLabel=dateLabel(targetDate);if(typeof dateOnly==='function')r.dateOnly=dateOnly(targetDate);}
+    PLAN.splice(to,0,r);
+    render();
   };
   window.dragStart=function(e,i){};
   window.dragOver=function(e){};
@@ -33,6 +48,7 @@ HARD_JS = r'''
   window.touchStart=function(e,i){touchIndex=i;const row=e.currentTarget.closest('.edit-row');if(row)row.classList.add('dragging');e.preventDefault();};
   window.touchMove=function(e){if(touchIndex==null)return;const t=e.touches[0];const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.edit-row');if(!el)return;const j=Number(el.dataset.i);if(Number.isFinite(j)&&j!==touchIndex){move(touchIndex,j);touchIndex=j;}e.preventDefault();};
   window.touchEnd=function(e){touchIndex=null;document.querySelectorAll('.dragging').forEach(x=>x.classList.remove('dragging'));e.preventDefault();};
+  window.resetDatesOrder=function(){};
   document.addEventListener('touchmove',function(e){if(e.target.closest('.drag'))return;}, {passive:true});
   try{render();}catch(e){}
 })();
@@ -48,10 +64,21 @@ def main():
     html = path.read_text(encoding="utf-8")
     import re
     html = re.sub(r'<meta name="viewport"[^>]*>', '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=10, minimum-scale=0.25, user-scalable=yes">', html, count=1)
-    # Remove mobile-draggable row attributes from the original generated rows by overriding render after load.
+    # Remove broken recalc button from the action bar.
+    html = html.replace('<button class="btn light" onclick="resetDatesOrder()">Ricalcola date in ordine</button>', '')
     if 'Hard fix planning editor scroll and zoom' not in html:
         html = html.replace('</head>', '<!-- Hard fix planning editor scroll and zoom -->\n' + HARD_CSS + '\n</head>', 1)
         html = html.replace('</body>', '<!-- Hard fix planning editor scroll and zoom -->\n' + HARD_JS + '\n</body>', 1)
+    else:
+        # Replace the previous hardfix script with the new one when rebuilding over an existing artifact.
+        marker = '<!-- Hard fix planning editor scroll and zoom -->'
+        first = html.find(marker)
+        second = html.find(marker, first + len(marker)) if first != -1 else -1
+        if second != -1:
+            before = html[:second]
+            after_start = html.find('</body>', second)
+            if after_start != -1:
+                html = before + marker + '\n' + HARD_JS + '\n' + html[after_start:]
     path.write_text(html, encoding="utf-8")
     print("Hard fix scroll/zoom editor planning applicato")
 
