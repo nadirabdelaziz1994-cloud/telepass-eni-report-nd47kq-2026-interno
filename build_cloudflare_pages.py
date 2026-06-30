@@ -10,6 +10,7 @@ def run(cmd):
 run(['python', 'build_bundle.py'])
 run(['python', 'scripts/grab_go_patch.py'])
 run(['python', 'scripts/grab_go_cloud_patch.py'])
+run(['python', 'scripts/grab_go_search_patch.py'])
 run(['python', 'scripts/main_site_cloud_patch.py'])
 
 if any((ROOT / 'input' / 'anagrafica').glob('*.xlsx')):
