@@ -14,14 +14,19 @@ let GRAB_REMOTE_LOADING=false;
 let GRAB_REMOTE_ATTEMPTED=false;
 let GRAB_REMOTE_ERROR='';
 function grabPadPdv(pdv){return String(pdv||'').replace(/\D+/g,'').padStart(5,'0');}
-function grabAdminKey(){let k=localStorage.getItem('telepassAdminKey')||'';if(!k){k=prompt('Inserisci ADMIN_KEY Cloudflare per salvare le visite Grab & Go condivise. Rimane salvata solo su questo dispositivo.')||'';if(k.trim())localStorage.setItem('telepassAdminKey',k.trim());}return String(k||'').trim();}
-function grabCloudLabel(){if(GRAB_REMOTE_READY)return ' · Cloudflare attivo';if(GRAB_REMOTE_LOADING)return ' · Cloudflare: caricamento visite condivise';if(GRAB_REMOTE_ERROR)return ' · Cloudflare errore: '+esc(GRAB_REMOTE_ERROR);return ' · Cloudflare non ancora caricato';}
+function grabSavedAdminKey(){return String(localStorage.getItem('telepassAdminKey')||'').trim();}
+function grabAdminUnlocked(){return !!grabSavedAdminKey();}
+function grabAdminKey(){return grabSavedAdminKey();}
+function unlockGrabCloud(){const current=grabSavedAdminKey();const k=prompt('Inserisci ADMIN_KEY Cloudflare. Verrà salvata solo su questo dispositivo.',current)||'';if(k.trim()){localStorage.setItem('telepassAdminKey',k.trim());alert('Modifiche Cloud sbloccate su questo dispositivo.');renderGrabGo();return true;}return false;}
+function lockGrabCloud(){localStorage.removeItem('telepassAdminKey');alert('Modifiche Cloud bloccate su questo dispositivo.');renderGrabGo();}
+function grabCloudLabel(){const lock=grabAdminUnlocked()?' · Modifiche sbloccate':' · Modifiche bloccate';if(GRAB_REMOTE_READY)return ' · Cloudflare attivo'+lock;if(GRAB_REMOTE_LOADING)return ' · Cloudflare: caricamento visite condivise'+lock;if(GRAB_REMOTE_ERROR)return ' · Cloudflare errore: '+esc(GRAB_REMOTE_ERROR)+lock;return ' · Cloudflare non ancora caricato'+lock;}
+function grabCloudButtons(){const a='<button class="btn light" type="button" onclick="refreshGrabRemote()" style="margin-left:8px;padding:5px 9px">Aggiorna visite</button>';const b=grabAdminUnlocked()?'<button class="btn light" type="button" onclick="lockGrabCloud()" style="margin-left:8px;padding:5px 9px">Blocca</button>':'<button class="btn" type="button" onclick="unlockGrabCloud()" style="margin-left:8px;padding:5px 9px">Sblocca modifiche Cloud</button>';return a+b;}
 async function loadGrabRemote(){if(GRAB_REMOTE_LOADING)return;GRAB_REMOTE_LOADING=true;GRAB_REMOTE_ATTEMPTED=true;try{const res=await fetch(GRAB_REMOTE_API+'/grab-visite?ts='+Date.now(),{cache:'no-store'});const data=await res.json();if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));const s={};(data.visite||[]).forEach(v=>{const pdv=grabPadPdv(v.pdv);if(pdv&&Number(v.month)){s[pdv]={month:Number(v.month),year:Number(v.year||new Date().getFullYear()),saved_at:v.saved_at||v.updated_at||''};}});saveGrabState(s);GRAB_REMOTE_READY=true;GRAB_REMOTE_ERROR='';}catch(e){GRAB_REMOTE_ERROR=String(e&&e.message?e.message:e);}finally{GRAB_REMOTE_LOADING=false;if(typeof activePage==='function'&&activePage()==='grab-go')renderGrabGo();}}
-async function saveGrabRemote(pdv,m){const key=grabAdminKey();if(!key)return false;try{const res=await fetch(GRAB_REMOTE_API+'/grab-visita',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Key':key},body:JSON.stringify({pdv:grabPadPdv(pdv),month:Number(m||0),year:new Date().getFullYear()})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok){if(res.status===401)localStorage.removeItem('telepassAdminKey');alert('Errore salvataggio Cloudflare: '+(data.error||res.status));return false;}GRAB_REMOTE_READY=true;GRAB_REMOTE_ERROR='';return true;}catch(e){alert('Errore rete Cloudflare: '+String(e&&e.message?e.message:e));return false;}}
+async function saveGrabRemote(pdv,m){const key=grabAdminKey();if(!key){alert('Prima premi “Sblocca modifiche Cloud” e inserisci la ADMIN_KEY.');renderGrabGo();return false;}try{const res=await fetch(GRAB_REMOTE_API+'/grab-visita',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Key':key},body:JSON.stringify({pdv:grabPadPdv(pdv),month:Number(m||0),year:new Date().getFullYear()})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok){if(res.status===401)localStorage.removeItem('telepassAdminKey');alert('Errore salvataggio Cloudflare: '+(data.error||res.status));renderGrabGo();return false;}GRAB_REMOTE_READY=true;GRAB_REMOTE_ERROR='';return true;}catch(e){alert('Errore rete Cloudflare: '+String(e&&e.message?e.message:e));return false;}}
 function refreshGrabRemote(){GRAB_REMOTE_READY=false;GRAB_REMOTE_ERROR='';GRAB_REMOTE_ATTEMPTED=false;loadGrabRemote();}
 '''
 
-SET_REMOTE = "async function setGrabVisit(pdv,m){const key=grabPadPdv(pdv);const s=grabState();if(!m){delete s[key];}else{s[key]={month:Number(m),year:new Date().getFullYear(),saved_at:new Date().toISOString()};}saveGrabState(s);renderGrabGo();await saveGrabRemote(key,m);}"
+SET_REMOTE = "async function setGrabVisit(pdv,m){const key=grabPadPdv(pdv);const oldState=grabState();const oldVal=oldState[key];const s=grabState();if(!m){delete s[key];}else{s[key]={month:Number(m),year:new Date().getFullYear(),saved_at:new Date().toISOString()};}saveGrabState(s);renderGrabGo();const ok=await saveGrabRemote(key,m);if(!ok){const rollback=grabState();if(oldVal){rollback[key]=oldVal;}else{delete rollback[key];}saveGrabState(rollback);renderGrabGo();}}"
 
 
 def patch_html(html: str) -> str:
@@ -34,7 +39,7 @@ def patch_html(html: str) -> str:
     html = html.replace(RENDER_START, "function renderGrabGo(){if(!GRAB_REMOTE_ATTEMPTED&&!GRAB_REMOTE_LOADING)loadGrabRemote();const w=document.getElementById('grabGoWrap');", 1)
     html = html.replace(
         "Filtro agenti separato da Home/Classifica.</div></div><div class=\"metric-row",
-        "Filtro agenti separato da Home/Classifica.${grabCloudLabel()} <button class=\"btn light\" type=\"button\" onclick=\"refreshGrabRemote()\" style=\"margin-left:8px;padding:5px 9px\">Aggiorna visite</button></div></div><div class=\"metric-row",
+        "Filtro agenti separato da Home/Classifica.${grabCloudLabel()} ${grabCloudButtons()}</div></div><div class=\"metric-row",
         1,
     )
     return html
