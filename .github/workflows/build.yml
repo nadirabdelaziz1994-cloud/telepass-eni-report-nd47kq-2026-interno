@@ -50,6 +50,7 @@ jobs:
             python scripts/planning_start_home_patch.py
             python scripts/planning_manage_nadir_alias_patch.py
             python scripts/planning_grab_visit_mode_patch.py
+            python scripts/planning_period_json_patch.py
           else
             echo "Planning standalone saltato: nessun file .xlsx in input/anagrafica"
           fi
