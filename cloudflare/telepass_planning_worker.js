@@ -23,6 +23,18 @@ function isAdmin(request, env) {
   return readAdminKey(request) && env.ADMIN_KEY && readAdminKey(request) === env.ADMIN_KEY;
 }
 
+async function ensureGrabVisiteTable(env) {
+  await env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS grab_visite (
+      pdv TEXT PRIMARY KEY,
+      month INTEGER,
+      year INTEGER,
+      saved_at TEXT,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run();
+}
+
 async function listModifiche(env) {
   const rows = await env.DB.prepare(`
     SELECT id, action, pdv, agente, tipo, citta, indirizzo, latitudine, longitudine, note, attivo, created_at, updated_at
@@ -79,6 +91,39 @@ async function ripristinaPdv(request, env) {
   return json({ ok: true, pdv, action: "RIPRISTINA" });
 }
 
+async function listGrabVisite(env) {
+  await ensureGrabVisiteTable(env);
+  const rows = await env.DB.prepare(`
+    SELECT pdv, month, year, saved_at, updated_at
+    FROM grab_visite
+    ORDER BY updated_at DESC
+  `).all();
+  return rows.results || [];
+}
+
+async function saveGrabVisita(request, env) {
+  if (!isAdmin(request, env)) {
+    return json({ ok: false, error: "ADMIN_KEY non valida" }, 401);
+  }
+  await ensureGrabVisiteTable(env);
+  const body = await request.json().catch(() => ({}));
+  const pdv = normPdv(body.pdv);
+  const month = Number(body.month || 0);
+  const year = Number(body.year || new Date().getFullYear());
+  if (!pdv) return json({ ok: false, error: "PV mancante" }, 400);
+  if (!month) {
+    await env.DB.prepare(`DELETE FROM grab_visite WHERE pdv = ?`).bind(pdv).run();
+    return json({ ok: true, pdv, action: "DELETE" });
+  }
+  if (month < 1 || month > 12) return json({ ok: false, error: "Mese non valido" }, 400);
+  await env.DB.prepare(`
+    INSERT INTO grab_visite (pdv, month, year, saved_at, updated_at)
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT(pdv) DO UPDATE SET month=excluded.month, year=excluded.year, saved_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
+  `).bind(pdv, month, year).run();
+  return json({ ok: true, pdv, month, year });
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -100,6 +145,14 @@ export default {
 
       if (url.pathname === "/ripristina" && request.method === "POST") {
         return ripristinaPdv(request, env);
+      }
+
+      if (url.pathname === "/grab-visite" && request.method === "GET") {
+        return json({ ok: true, visite: await listGrabVisite(env) });
+      }
+
+      if (url.pathname === "/grab-visita" && request.method === "POST") {
+        return saveGrabVisita(request, env);
       }
 
       return json({ ok: false, error: "Endpoint non trovato" }, 404);
