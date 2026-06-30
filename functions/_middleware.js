@@ -1,3 +1,15 @@
+const API_ORIGIN = "https://telepass-planning-api.nadirabdelaziz1994.workers.dev";
+const API_PATHS = new Set([
+  "/health",
+  "/login",
+  "/session",
+  "/modifiche",
+  "/modifica",
+  "/ripristina",
+  "/grab-visite",
+  "/grab-visita"
+]);
+
 export async function onRequest(context) {
   const user = String(context.env.LOGIN_USER || "");
   const code = String(context.env.LOGIN_PASS || "");
@@ -32,6 +44,20 @@ export async function onRequest(context) {
         "content-type": "text/plain; charset=utf-8",
         "cache-control": "no-store"
       }
+    });
+  }
+
+  const url = new URL(context.request.url);
+  if (API_PATHS.has(url.pathname)) {
+    const target = API_ORIGIN + url.pathname + url.search;
+    const headers = new Headers(context.request.headers);
+    headers.set("Authorization", auth);
+    headers.delete("host");
+    return fetch(target, {
+      method: context.request.method,
+      headers,
+      body: ["GET", "HEAD"].includes(context.request.method) ? undefined : context.request.body,
+      redirect: "manual"
     });
   }
 
