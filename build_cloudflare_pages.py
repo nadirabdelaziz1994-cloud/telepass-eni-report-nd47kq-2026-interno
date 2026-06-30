@@ -26,6 +26,7 @@ if any((ROOT / 'input' / 'anagrafica').glob('*.xlsx')):
         'scripts/planning_edit_dayblock_patch.py',
         'scripts/planning_start_home_patch.py',
         'scripts/planning_manage_nadir_alias_patch.py',
+        'scripts/planning_grab_visit_mode_patch.py',
     ]:
         run(['python', script])
 else:
