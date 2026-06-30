@@ -84,27 +84,31 @@ JS = r'''
 
 def main():
     path = DOCS_DIR / "planning-edit.html"
-    if not path.exists():
-        print("planning-edit.html non trovato, dayblock saltato")
-        return
-    html = path.read_text(encoding="utf-8")
-    if 'day-block' not in html:
-        html = html.replace('</head>', CSS + '\n</head>', 1)
-        html = html.replace('</body>', JS + '\n</body>', 1)
-    else:
-        # Replace old day-block patch in rebuilt/existing artifacts if present.
-        html = html.replace('el.dataset-day', 'el.dataset.day')
-        marker = '<style>\n.day-block'
-        s = html.find(marker)
-        if s != -1:
-            e = html.find('</style>', s)
-            if e != -1:
-                html = html[:s] + CSS.strip() + html[e+len('</style>'):]
-        # Append the latest JS after previous render overrides so it wins.
-        if 'dayBlockUp=function' not in html:
+    if path.exists():
+        html = path.read_text(encoding="utf-8")
+        if 'day-block' not in html:
+            html = html.replace('</head>', CSS + '\n</head>', 1)
             html = html.replace('</body>', JS + '\n</body>', 1)
-    path.write_text(html, encoding="utf-8")
-    print("Blocchi data trascinabili applicati")
+        else:
+            html = html.replace('el.dataset-day', 'el.dataset.day')
+            marker = '<style>\n.day-block'
+            s = html.find(marker)
+            if s != -1:
+                e = html.find('</style>', s)
+                if e != -1:
+                    html = html[:s] + CSS.strip() + html[e+len('</style>'):]
+            if 'dayBlockUp=function' not in html:
+                html = html.replace('</body>', JS + '\n</body>', 1)
+        path.write_text(html, encoding="utf-8")
+        print("Blocchi data trascinabili applicati")
+    else:
+        print("planning-edit.html non trovato, dayblock saltato")
+
+    try:
+        from planning_edit_persistence_patch import main as persistence_main
+        persistence_main()
+    except Exception as exc:
+        raise RuntimeError(f"Errore persistenza planning modificato: {exc}") from exc
 
 
 if __name__ == "__main__":
