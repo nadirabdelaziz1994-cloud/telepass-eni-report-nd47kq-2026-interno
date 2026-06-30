@@ -52,7 +52,7 @@ JS = r'''
   window.dayTouchMove=function(e){
     if(dayTouchIndex==null)return;
     const t=e.touches[0];const el=document.elementFromPoint(t.clientX,t.clientY)?.closest('.day-block');
-    if(!el)return;const j=Number(el.dataset-day);if(Number.isFinite(j)&&j!==dayTouchIndex){moveDayBlock(dayTouchIndex,j);dayTouchIndex=j;}
+    if(!el)return;const j=Number(el.dataset.day);if(Number.isFinite(j)&&j!==dayTouchIndex){moveDayBlock(dayTouchIndex,j);dayTouchIndex=j;}
     e.preventDefault();
   };
   window.dayTouchEnd=function(e){dayTouchIndex=null;document.querySelectorAll('.day-moving').forEach(x=>x.classList.remove('day-moving'));e.preventDefault();};
@@ -81,6 +81,8 @@ def main():
     if 'day-block' not in html:
         html = html.replace('</head>', CSS + '\n</head>', 1)
         html = html.replace('</body>', JS + '\n</body>', 1)
+    else:
+        html = html.replace('el.dataset-day', 'el.dataset.day')
     path.write_text(html, encoding="utf-8")
     print("Blocchi data trascinabili applicati")
 
