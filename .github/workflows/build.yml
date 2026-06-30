@@ -43,6 +43,7 @@ jobs:
             python scripts/planning_edit_scroll_fix_patch.py
             python scripts/planning_edit_scroll_hardfix_patch.py
             python scripts/planning_edit_sticky_save_patch.py
+            python scripts/planning_edit_dayblock_patch.py
           else
             echo "Planning standalone saltato: nessun file .xlsx in input/anagrafica"
           fi
