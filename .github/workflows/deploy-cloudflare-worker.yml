@@ -1,0 +1,37 @@
+name: Deploy Cloudflare Worker
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/telepass_planning_worker.js'
+      - '.github/workflows/deploy-cloudflare-worker.yml'
+
+jobs:
+  deploy-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Create Wrangler config
+        run: |
+          cat > wrangler.generated.toml <<EOF
+          name = "telepass-planning-api"
+          main = "cloudflare/telepass_planning_worker.js"
+          compatibility_date = "2026-06-30"
+
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "telepass-planning-db"
+          database_id = "${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}"
+          EOF
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.generated.toml
