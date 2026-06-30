@@ -34,6 +34,7 @@ jobs:
           python build_bundle.py
           python scripts/grab_go_patch.py
           python scripts/grab_go_cloud_patch.py
+          python scripts/grab_go_search_patch.py
           python scripts/main_site_cloud_patch.py
           if ls input/anagrafica/*.xlsx >/dev/null 2>&1; then
             python scripts/planning_standalone.py
