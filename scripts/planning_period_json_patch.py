@@ -55,7 +55,7 @@ PATCH = r'''
     var last=prevLastDate(month);var start=last?nextWorkdayAfterSafe(new Date(last+'T00:00:00')):base[0];
     var days=base.filter(function(d){return d>=start;});
     if(mode==='days'){
-      var n=Math.max(1,Number((byId('periodDays')&&byId('periodDays').value)||15));
+      var n=15;
       if(!days.length)days=extendWorkdaysSafe(start,n);
       return days.slice(0,n);
     }
@@ -87,8 +87,10 @@ PATCH = r'''
     if(!month||!start||!grab||!prev)return;
     if(!byId('periodMode')){
       var wrap=start.closest('div')||start.parentElement;
-      if(wrap){wrap.insertAdjacentHTML('beforebegin','<div><label>Periodo planning</label><select id="periodMode" onchange="window.togglePeriodDays&&window.togglePeriodDays()"><option value="days">Numero giorni</option><option value="month">1 mese</option><option value="all" selected>Tutti i PDV</option></select><div class="muted" style="font-size:11px;margin-top:4px">Numero giorni usa solo quei giorni lavorativi. 1 mese resta nel mese. Tutti i PDV continua oltre il mese se serve.</div></div><div><label>Giorni</label><input id="periodDays" type="number" min="1" max="31" value="15"></div>');}
+      if(wrap){wrap.insertAdjacentHTML('beforebegin','<div><label>Periodo planning</label><select id="periodMode"><option value="days">15 giorni</option><option value="month">1 mese</option><option value="all" selected>Tutti i PDV</option></select><div class="muted" style="font-size:11px;margin-top:4px">15 giorni usa solo i primi 15 giorni lavorativi. 1 mese resta nel mese. Tutti i PDV continua oltre il mese se serve.</div></div>');}
     }
+    var oldDays=byId('periodDays');
+    if(oldDays){var oldWrap=oldDays.closest('div');if(oldWrap)oldWrap.remove();}
     if(!grab.querySelector('option[value="only_new"]')){
       grab.innerHTML='<option value="no">No</option><option value="only_new">Sì, solo non visitati</option><option value="all">Sì, tutti</option>';
       grab.insertAdjacentHTML('afterend','<div class="muted" style="font-size:11px;margin-top:4px">Se scegli “Sì, tutti”, i Grab&Go già visitati possono rientrare nel planning e verranno rimessi come non visitati nella pagina Grab & Go.</div>');
@@ -99,12 +101,11 @@ PATCH = r'''
       var html='<button id="downloadJsonBtn" class="btn light" onclick="window.downloadJson&&window.downloadJson()">Scarica JSON</button>';
       if(csvBtn)csvBtn.insertAdjacentHTML('afterend',html);else prev.closest('section').querySelector('.actions').insertAdjacentHTML('beforeend',html);
     }
-    togglePeriodDays();
   }
-  window.togglePeriodDays=function(){var mode=(byId('periodMode')&&byId('periodMode').value)||'all';var box=byId('periodDays');if(box)box.disabled=mode!=='days';};
   window.downloadJson=function(){
     var plan=window.PLAN||[];if(!plan.length){alert('Prima crea il planning');return;}
-    var data={created_at:new Date().toISOString(),agent:(byId('agent')&&byId('agent').value)||'',month:(byId('month')&&byId('month').value)||'',period_mode:(byId('periodMode')&&byId('periodMode').value)||'',period_days:(byId('periodDays')&&byId('periodDays').value)||'',grab_mode:(byId('grab')&&byId('grab').value)||'',items:plan};
+    var mode=(byId('periodMode')&&byId('periodMode').value)||'';
+    var data={created_at:new Date().toISOString(),agent:(byId('agent')&&byId('agent').value)||'',month:(byId('month')&&byId('month').value)||'',period_mode:mode,period_days:(mode==='days'?'15':''),grab_mode:(byId('grab')&&byId('grab').value)||'',items:plan};
     var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}));a.download='planning_'+(data.agent||'agente')+'_'+(data.month||'mese')+'.json';a.click();
   };
   var oldGenerate=window.generatePlanning;
