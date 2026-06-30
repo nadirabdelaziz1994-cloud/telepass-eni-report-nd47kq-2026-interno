@@ -15,7 +15,11 @@ PATCH_JS = r'''
     return k==='grab';
   }
   function isTPointForDay(p){return !isGrabOnlyForDay(p);}
+  function tripLimitActive(){
+    try{return typeof maxTripDays==='function' && maxTripDays()>0;}catch(e){return false;}
+  }
   function isRemoteDayPoint(p){
+    if(!tripLimitActive()) return false;
     try{return typeof isTrasfertaPoint==='function' && isTrasfertaPoint(p);}catch(e){return false;}
   }
   function sameArea(a,b){
@@ -34,17 +38,26 @@ PATCH_JS = r'''
     const overflowDays=days.filter(d=>!iso(d).startsWith(monthPrefix)).slice(0,15);
     const usableDays=monthDays.concat(overflowDays);
     const list=usableDays.length?usableDays:days;
-    const softDay=480;
-    const hardDay=570;
+    const softDay=450;
+    const hardDay=540;
     const remoteHardDay=630;
+    const targetTotal=6;
     const maxTPoint=6;
-    const maxTotal=8;
+    const maxTotal=7;
     const remoteMaxTotal=11;
     function resetDay(){mins=0;count=0;tpCount=0;grabCount=0;last=start;dayRemote=false;dayAnchor=null;}
     function dayAddCost(point, from){
       const rawKm=km(from||start,point);
       const travel=travelMin(rawKm);
       return {travel, total:travel+visitMin(point), km:rawKm};
+    }
+    function canAddSeventh(point,cost,nextTp,nextGrab){
+      if(count<targetTotal) return true;
+      if(count>=maxTotal) return false;
+      if(nextTp>5 && nextGrab>0) return false;
+      if(cost.km>18 && !(dayAnchor&&sameArea(dayAnchor,point))) return false;
+      if(mins+cost.total>hardDay) return false;
+      return true;
     }
     function canExtraRemoteGrab(point,cost){
       if(!dayRemote) return false;
@@ -72,8 +85,9 @@ PATCH_JS = r'''
       if(nextTotal>maxTotal) return true;
       if(nextTp>=5 && nextGrab>2) return true;
       if(nextTp===4 && nextGrab>3) return true;
+      if(!canAddSeventh(point,cost,nextTp,nextGrab)) return true;
       if(mins+cost.total>hardDay) return true;
-      if(mins+cost.total>softDay && count>=2) return true;
+      if(mins+cost.total>softDay && count>=targetTotal-1) return true;
       return false;
     }
     for(const p of ordered){
@@ -110,7 +124,7 @@ def main():
         end = html.find('</script>', start)
         if end != -1:
             html = html[:start] + PATCH_JS.strip() + html[end+len('</script>'):]
-    elif 'function canExtraRemoteGrab' not in html:
+    elif 'function tripLimitActive' not in html:
         html = html.replace('</body>', PATCH_JS + '\n</body>', 1)
     path.write_text(html, encoding='utf-8')
     print(marker)
