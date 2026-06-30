@@ -12,7 +12,18 @@ PATCH = r'''
 
   function byId(id){return document.getElementById(id);}
   function normPdvSafe(v){var m=String(v||'').match(/\d+/);return m?m[0].padStart(5,'0'):'';}
-  function isoSafe(d){return new Date(d).toISOString().slice(0,10);}
+  function textNorm(v){try{if(typeof norm==='function')return norm(v);}catch(e){}return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+  function pointMatchesAgent(p,agent){
+    var want=String(agent||'');
+    var vals=[p&&p.agent_display,p&&p.agent,p&&p.my_world,p&&p.owner];
+    try{if(typeof visibleAgentName==='function')vals.push(visibleAgentName(p&&p.agent));}catch(e){}
+    for(var i=0;i<vals.length;i++){
+      var v=String(vals[i]||'');
+      if(v===want)return true;
+      if(textNorm(v)&&textNorm(v)===textNorm(want))return true;
+    }
+    return false;
+  }
   function nextWorkdayAfterSafe(d){var x=new Date(d);x.setDate(x.getDate()+1);while(x.getDay()===0||x.getDay()===6){x.setDate(x.getDate()+1);}return x;}
   function extendWorkdaysSafe(startDate,n){var out=[],d=new Date(startDate);while(out.length<n){if(d.getDay()!==0&&d.getDay()!==6)out.push(new Date(d));d.setDate(d.getDate()+1);}return out;}
   function dateFromText(v){var s=String(v||'').trim();var a=s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](20\d{2})/);var b=s.match(/(20\d{2})[\-.](\d{1,2})[\-.](\d{1,2})/);if(a)return a[3]+'-'+a[2].padStart(2,'0')+'-'+a[1].padStart(2,'0');if(b)return b[1]+'-'+b[2].padStart(2,'0')+'-'+b[3].padStart(2,'0');return '';}
@@ -35,16 +46,16 @@ PATCH = r'''
     if(!f){PLAN_PREV_EXTRA={};PLAN_PREV_FILE='';return;}
     if(PLAN_PREV_FILE===f.name)return;
     var txt=await f.text();PLAN_PREV_EXTRA=parsePrevSafe(txt);PLAN_PREV_FILE=f.name;
-    try{window.PREV=Object.assign({},window.PREV||{},PLAN_PREV_EXTRA);}catch(e){}
+    try{PREV=Object.assign({},PREV||{},PLAN_PREV_EXTRA);}catch(e){}
     alert('Planning precedente caricato: '+Object.keys(PLAN_PREV_EXTRA).length+' PV trovati');
   }
   function prevDoneSet(month){
-    var s=new Set();var all=Object.assign({},window.PREV||{},PLAN_PREV_EXTRA||{});
+    var s=new Set();var base={};try{base=PREV||{};}catch(e){}var all=Object.assign({},base,PLAN_PREV_EXTRA||{});
     Object.keys(all).forEach(function(pdv){var d=all[pdv];if(String(d||'').slice(0,7)===month)s.add(normPdvSafe(pdv));});
     return s;
   }
   function prevLastDate(month){
-    var vals=[];var all=Object.assign({},window.PREV||{},PLAN_PREV_EXTRA||{});
+    var vals=[];var base={};try{base=PREV||{};}catch(e){}var all=Object.assign({},base,PLAN_PREV_EXTRA||{});
     Object.keys(all).forEach(function(pdv){var d=all[pdv];if(String(d||'').slice(0,7)===month)vals.push(d);});
     vals.sort();return vals.length?vals[vals.length-1]:'';
   }
@@ -103,7 +114,8 @@ PATCH = r'''
     }
   }
   window.downloadJson=function(){
-    var plan=window.PLAN||[];if(!plan.length){alert('Prima crea il planning');return;}
+    var plan=[];try{plan=PLAN||[];}catch(e){plan=window.PLAN||[];}
+    if(!plan.length){alert('Prima crea il planning');return;}
     var mode=(byId('periodMode')&&byId('periodMode').value)||'';
     var data={created_at:new Date().toISOString(),agent:(byId('agent')&&byId('agent').value)||'',month:(byId('month')&&byId('month').value)||'',period_mode:mode,period_days:(mode==='days'?'15':''),grab_mode:(byId('grab')&&byId('grab').value)||'',items:plan};
     var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}));a.download='planning_'+(data.agent||'agente')+'_'+(data.month||'mese')+'.json';a.click();
@@ -117,16 +129,20 @@ PATCH = r'''
     await loadPrevFile();
     var done=prevDoneSet(month), gm=await grabMap();
     var pts=allPoints().filter(function(p){
-      if(p.agent_display!==agent||p.lat==null||p.lng==null||done.has(normPdvSafe(p.pdv)))return false;
+      if(!pointMatchesAgent(p,agent)||p.lat==null||p.lng==null||done.has(normPdvSafe(p.pdv)))return false;
       if(!(typeof isGrab==='function'&&isGrab(p)))return true;
       if(grabMode==='no')return false;
       if(grabMode==='only_new')return !isGrabVisited(p,gm);
       return true;
     });
-    if(!pts.length){alert('Nessun PV con coordinate per questo agente, oppure sono già tutti nel planning precedente caricato');return;}
+    if(!pts.length){
+      if(typeof oldGenerate==='function')return oldGenerate();
+      alert('Nessun PV con coordinate per questo agente, oppure sono già tutti nel planning precedente caricato');return;
+    }
     var days=selectedDays(month), start=startPoint(pts,(byId('start')&&byId('start').value)||''), ordered=order(pts,start,month);
-    window.PLAN=assign(ordered,days,start);
-    await clearGrabVisited(window.PLAN,gm);
+    var newPlan=assign(ordered,days,start);
+    try{PLAN=newPlan;}catch(e){window.PLAN=newPlan;}
+    await clearGrabVisited(newPlan,gm);
     if(typeof renderTable==='function')renderTable(days.length);
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',injectUi);else injectUi();
