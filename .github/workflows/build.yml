@@ -41,6 +41,7 @@ jobs:
             python scripts/planning_standalone.py
             python scripts/planning_nadir_alias_patch.py
             python scripts/planning_excel_stable_patch.py
+            python scripts/planning_ui_mobile_patch.py
           else
             echo "Planning standalone saltato: nessun file .xlsx in input/anagrafica"
           fi
