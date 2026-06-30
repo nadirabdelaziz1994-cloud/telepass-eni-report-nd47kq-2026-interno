@@ -47,13 +47,27 @@ PATCH = r'''
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
     return true;
   };
+  window.downloadExcelOnly = downloadExcelOnly = function(){
+    const payload=currentPlanPayload();
+    if(!payload.plan||!payload.plan.length){alert('Prima crea o carica un planning');return false;}
+    try{sessionStorage.setItem('planningCurrent',JSON.stringify(payload));}catch(e){}
+    if(typeof downloadXls==='function'){downloadXls();return true;}
+    alert('Funzione Excel non trovata');return false;
+  };
+  function ensureDownloadPanel(){
+    if(document.getElementById('downloadPanel'))return;
+    const panel=document.createElement('div');
+    panel.id='downloadPanel';
+    panel.style.cssText='display:none;position:fixed;inset:0;z-index:99999;background:#0008;align-items:center;justify-content:center;padding:18px';
+    panel.innerHTML='<div style="background:white;border-radius:18px;padding:16px;max-width:420px;width:100%;box-shadow:0 8px 32px #0005"><h3 style="margin:0 0 8px;color:#0b2d5c">Scarica planning</h3><p style="margin:0 0 12px;color:#64748b;font-size:14px">Premi i due pulsanti uno alla volta. Così Android non blocca il secondo download.</p><button class="btn" style="width:100%;margin-bottom:8px" onclick="downloadEditablePlanning()">1. Salva file modificabile JSON</button><button class="btn" style="width:100%;margin-bottom:8px" onclick="downloadExcelOnly()">2. Salva Excel</button><button class="btn light" style="width:100%" onclick="document.getElementById(\'downloadPanel\').style.display=\'none\'">Chiudi</button></div>';
+    document.body.appendChild(panel);
+  }
   window.downloadExcelAndEditable = downloadExcelAndEditable = function(){
     const payload=currentPlanPayload();
     if(!payload.plan||!payload.plan.length){alert('Prima crea o carica un planning');return;}
     try{sessionStorage.setItem('planningCurrent',JSON.stringify(payload));}catch(e){}
-    const ok=downloadEditablePlanning();
-    if(!ok)return;
-    if(typeof downloadXls==='function')downloadXls();else alert('Funzione Excel non trovata');
+    ensureDownloadPanel();
+    document.getElementById('downloadPanel').style.display='flex';
   };
   window.openEditablePlanningFile = openEditablePlanningFile = function(){
     const inp=document.getElementById('editablePlanningFile');
@@ -73,6 +87,7 @@ PATCH = r'''
     input.value='';
   };
   function ensureButtons(){
+    ensureDownloadPanel();
     const buttons=[...document.querySelectorAll('button')];
     const excel=buttons.find(b=>(b.textContent||'').toLowerCase().includes('scarica excel'));
     if(excel&&!excel.dataset.comboDone){
@@ -110,7 +125,7 @@ def main():
     if 'downloadEditablePlanning' not in html:
         html = html.replace('</body>', PATCH + '\n</body>', 1)
     else:
-        if 'downloadExcelAndEditable' not in html:
+        if 'downloadExcelOnly' not in html:
             html = html.replace('</body>', PATCH + '\n</body>', 1)
     path.write_text(html, encoding="utf-8")
     print("Persistenza planning modificato applicata")
