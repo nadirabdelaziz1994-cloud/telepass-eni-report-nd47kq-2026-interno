@@ -50,8 +50,8 @@ def patch_html(html: str) -> str:
     elif 'id="planGrab"' in html and 'Sì, solo non visitati' not in html:
         print('Attenzione: select Grab & Go trovato ma formato non riconosciuto')
 
-    if 'planGrabIsVisited' not in html or 'planPeriodMode' in html and 'planAssignSmart' not in html:
-        html2, n = GENERATE_RE.subn(NEW_FUNCTIONS.strip(), html, count=1)
+    if 'planGrabIsVisited' not in html or ('planPeriodMode' in html and 'planAssignSmart' not in html):
+        html2, n = GENERATE_RE.subn(lambda _m: NEW_FUNCTIONS.strip(), html, count=1)
         if n:
             html = html2
             changed = True
