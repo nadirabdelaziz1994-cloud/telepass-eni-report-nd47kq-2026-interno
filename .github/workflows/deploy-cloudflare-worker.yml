@@ -12,26 +12,37 @@ jobs:
   deploy-worker:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Check required secrets
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || (echo "Manca secret CLOUDFLARE_API_TOKEN" && exit 1)
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || (echo "Manca secret CLOUDFLARE_ACCOUNT_ID" && exit 1)
+          test -n "$CLOUDFLARE_D1_DATABASE_ID" || (echo "Manca secret CLOUDFLARE_D1_DATABASE_ID" && exit 1)
+          echo "Secrets presenti. Account ID length: ${#CLOUDFLARE_ACCOUNT_ID}; D1 ID length: ${#CLOUDFLARE_D1_DATABASE_ID}"
 
       - name: Create Wrangler config
         run: |
           cat > wrangler.generated.toml <<EOF
           name = "telepass-planning-api"
           main = "cloudflare/telepass_planning_worker.js"
-          compatibility_date = "2026-06-30"
+          compatibility_date = "2026-06-29"
 
           [[d1_databases]]
           binding = "DB"
           database_name = "telepass-planning-db"
-          database_id = "${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}"
+          database_id = "$CLOUDFLARE_D1_DATABASE_ID"
           EOF
+          sed -E 's/database_id = ".+"/database_id = "***"/' wrangler.generated.toml
+
+      - name: Install Wrangler
+        run: npm install --no-save wrangler@3.90.0
 
       - name: Deploy Worker
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --config wrangler.generated.toml
+        run: npx wrangler deploy --config wrangler.generated.toml
