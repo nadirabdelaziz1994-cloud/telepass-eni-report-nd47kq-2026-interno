@@ -75,6 +75,12 @@ def main():
     except Exception as exc:
         raise RuntimeError(f"Errore capacity planning: {exc}") from exc
 
+    try:
+        from planning_fill_month_patch import main as fill_month_main
+        fill_month_main()
+    except Exception as exc:
+        raise RuntimeError(f"Errore riempimento mese planning: {exc}") from exc
+
 
 if __name__ == "__main__":
     main()
