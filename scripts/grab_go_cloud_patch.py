@@ -1,0 +1,58 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+DOCS_DIR = ROOT / "docs"
+
+MONTHS_LINE = "const GRAB_GO_MONTHS=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];"
+SET_LOCAL = "function setGrabVisit(pdv,m){const s=grabState();if(!m){delete s[pdv];}else{s[pdv]={month:Number(m),year:new Date().getFullYear(),saved_at:new Date().toISOString()};}saveGrabState(s);renderGrabGo();}"
+RENDER_START = "function renderGrabGo(){const w=document.getElementById('grabGoWrap');"
+
+REMOTE_JS = r'''
+const GRAB_REMOTE_API='https://telepass-planning-api.nadirabdelaziz1994.workers.dev';
+let GRAB_REMOTE_READY=false;
+let GRAB_REMOTE_LOADING=false;
+let GRAB_REMOTE_ATTEMPTED=false;
+let GRAB_REMOTE_ERROR='';
+function grabPadPdv(pdv){return String(pdv||'').replace(/\D+/g,'').padStart(5,'0');}
+function grabAdminKey(){let k=localStorage.getItem('telepassAdminKey')||'';if(!k){k=prompt('Inserisci ADMIN_KEY Cloudflare per salvare le visite Grab & Go condivise. Rimane salvata solo su questo dispositivo.')||'';if(k.trim())localStorage.setItem('telepassAdminKey',k.trim());}return String(k||'').trim();}
+function grabCloudLabel(){if(GRAB_REMOTE_READY)return ' · Cloudflare attivo';if(GRAB_REMOTE_LOADING)return ' · Cloudflare: caricamento visite condivise';if(GRAB_REMOTE_ERROR)return ' · Cloudflare errore: '+esc(GRAB_REMOTE_ERROR);return ' · Cloudflare non ancora caricato';}
+async function loadGrabRemote(){if(GRAB_REMOTE_LOADING)return;GRAB_REMOTE_LOADING=true;GRAB_REMOTE_ATTEMPTED=true;try{const res=await fetch(GRAB_REMOTE_API+'/grab-visite?ts='+Date.now(),{cache:'no-store'});const data=await res.json();if(!res.ok||!data.ok)throw new Error(data.error||('HTTP '+res.status));const s={};(data.visite||[]).forEach(v=>{const pdv=grabPadPdv(v.pdv);if(pdv&&Number(v.month)){s[pdv]={month:Number(v.month),year:Number(v.year||new Date().getFullYear()),saved_at:v.saved_at||v.updated_at||''};}});saveGrabState(s);GRAB_REMOTE_READY=true;GRAB_REMOTE_ERROR='';}catch(e){GRAB_REMOTE_ERROR=String(e&&e.message?e.message:e);}finally{GRAB_REMOTE_LOADING=false;if(typeof activePage==='function'&&activePage()==='grab-go')renderGrabGo();}}
+async function saveGrabRemote(pdv,m){const key=grabAdminKey();if(!key)return false;try{const res=await fetch(GRAB_REMOTE_API+'/grab-visita',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Key':key},body:JSON.stringify({pdv:grabPadPdv(pdv),month:Number(m||0),year:new Date().getFullYear()})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok){if(res.status===401)localStorage.removeItem('telepassAdminKey');alert('Errore salvataggio Cloudflare: '+(data.error||res.status));return false;}GRAB_REMOTE_READY=true;GRAB_REMOTE_ERROR='';return true;}catch(e){alert('Errore rete Cloudflare: '+String(e&&e.message?e.message:e));return false;}}
+function refreshGrabRemote(){GRAB_REMOTE_READY=false;GRAB_REMOTE_ERROR='';GRAB_REMOTE_ATTEMPTED=false;loadGrabRemote();}
+'''
+
+SET_REMOTE = "async function setGrabVisit(pdv,m){const key=grabPadPdv(pdv);const s=grabState();if(!m){delete s[key];}else{s[key]={month:Number(m),year:new Date().getFullYear(),saved_at:new Date().toISOString()};}saveGrabState(s);renderGrabGo();await saveGrabRemote(key,m);}"
+
+
+def patch_html(html: str) -> str:
+    if "GRAB_REMOTE_API" in html:
+        return html
+    if MONTHS_LINE not in html or SET_LOCAL not in html or RENDER_START not in html:
+        raise RuntimeError("Struttura Grab & Go non trovata: esegui prima grab_go_patch.py")
+    html = html.replace(MONTHS_LINE, MONTHS_LINE + "\n" + REMOTE_JS, 1)
+    html = html.replace(SET_LOCAL, SET_REMOTE, 1)
+    html = html.replace(RENDER_START, "function renderGrabGo(){if(!GRAB_REMOTE_ATTEMPTED&&!GRAB_REMOTE_LOADING)loadGrabRemote();const w=document.getElementById('grabGoWrap');", 1)
+    html = html.replace(
+        "Filtro agenti separato da Home/Classifica.</div></div><div class=\"metric-row",
+        "Filtro agenti separato da Home/Classifica.${grabCloudLabel()} <button class=\"btn light\" type=\"button\" onclick=\"refreshGrabRemote()\" style=\"margin-left:8px;padding:5px 9px\">Aggiorna visite</button></div></div><div class=\"metric-row",
+        1,
+    )
+    return html
+
+
+def main():
+    patched = 0
+    for name in ["index.html", "Telepass_ENI_sito_v6.html"]:
+        path = DOCS_DIR / name
+        if not path.exists():
+            continue
+        old = path.read_text(encoding="utf-8")
+        new = patch_html(old)
+        if new != old:
+            path.write_text(new, encoding="utf-8")
+            patched += 1
+    print(f"Grab & Go Cloudflare sync patch completata: {patched} file aggiornati")
+
+
+if __name__ == "__main__":
+    main()
