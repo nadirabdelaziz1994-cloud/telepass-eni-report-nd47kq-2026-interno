@@ -51,8 +51,9 @@ PATCH = r'''
     const payload=currentPlanPayload();
     if(!payload.plan||!payload.plan.length){alert('Prima crea o carica un planning');return;}
     try{sessionStorage.setItem('planningCurrent',JSON.stringify(payload));}catch(e){}
+    const ok=downloadEditablePlanning();
+    if(!ok)return;
     if(typeof downloadXls==='function')downloadXls();else alert('Funzione Excel non trovata');
-    setTimeout(()=>downloadEditablePlanning(),500);
   };
   window.openEditablePlanningFile = openEditablePlanningFile = function(){
     const inp=document.getElementById('editablePlanningFile');
@@ -109,7 +110,6 @@ def main():
     if 'downloadEditablePlanning' not in html:
         html = html.replace('</body>', PATCH + '\n</body>', 1)
     else:
-        # Replace previous persistence patch by appending the newer one last so it wins.
         if 'downloadExcelAndEditable' not in html:
             html = html.replace('</body>', PATCH + '\n</body>', 1)
     path.write_text(html, encoding="utf-8")
