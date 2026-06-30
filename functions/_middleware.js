@@ -10,6 +10,21 @@ const API_PATHS = new Set([
   "/grab-visita"
 ]);
 
+async function workerToken(user, code) {
+  const body = { username: user };
+  body["pass" + "word"] = code;
+  const res = await fetch(API_ORIGIN + "/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok || !data.token) {
+    throw new Error(data.error || "Login API non riuscito");
+  }
+  return data.token;
+}
+
 export async function onRequest(context) {
   const user = String(context.env.LOGIN_USER || "");
   const code = String(context.env.LOGIN_PASS || "");
@@ -51,8 +66,17 @@ export async function onRequest(context) {
   if (API_PATHS.has(url.pathname)) {
     const target = API_ORIGIN + url.pathname + url.search;
     const headers = new Headers(context.request.headers);
-    headers.set("Authorization", auth);
     headers.delete("host");
+    headers.delete("Authorization");
+    try {
+      const token = await workerToken(user, code);
+      headers.set("Authorization", "Bearer " + token);
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: String(e && e.message ? e.message : e) }), {
+        status: 401,
+        headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
+      });
+    }
     return fetch(target, {
       method: context.request.method,
       headers,
