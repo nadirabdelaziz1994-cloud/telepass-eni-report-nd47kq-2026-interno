@@ -2,5 +2,7 @@ name = "telepass-planning-api"
 main = "cloudflare/telepass_planning_worker.js"
 compatibility_date = "2026-06-29"
 
-# Il binding D1 DB è già configurato nel Worker su Cloudflare.
-# Se Cloudflare chiede di gestire i bindings da file, aggiungeremo qui il database_id.
+[[d1_databases]]
+binding = "DB"
+database_name = "telepass-planning-db"
+database_id = "\u0061\u0033\u0031\u0062\u0064\u0030\u0032\u0037\u002d\u0039\u0034\u0038\u0036\u002d\u0034\u0032\u0066\u0037\u002d\u0039\u0066\u0031\u0034\u002d\u0034\u0065\u0063\u0036\u0064\u0030\u0038\u0035\u0035\u0039\u0035\u0065"
