@@ -13,22 +13,35 @@ PATCH = r'''
   function byId(id){return document.getElementById(id);}
   function normPdvSafe(v){var m=String(v||'').match(/\d+/);return m?m[0].padStart(5,'0'):'';}
   function textNorm(v){try{if(typeof norm==='function')return norm(v);}catch(e){}return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
-  function isNadirAliasSafe(v){
-    var s=textNorm(String(v||'').replace('@',' ').replace(/[._-]+/g,' '));
-    if(!s)return false;
-    return s==='nadir a'||s==='nadir abdel'||s==='abdel nadir'||s==='nadir abdel aziz'||s==='nadir aziz'||s.indexOf('nadir a ')>=0||s.indexOf('nadir abdel')>=0||s.indexOf('abdel nadir')>=0;
+  function agentTokens(v){return textNorm(String(v||'').replace('@',' ').replace(/[._-]+/g,' ')).split(/\s+/).filter(Boolean);}
+  function tokenMatch(a,b){return a===b||(a.length===1&&b&&b[0]===a)||(b.length===1&&a&&a[0]===b);}
+  function tokensCompatible(a,b){
+    if(!a.length||!b.length)return false;
+    if(a.length<2||b.length<2)return false;
+    var short=a.length<=b.length?a:b,long=a.length<=b.length?b:a,used={};
+    for(var i=0;i<short.length;i++){
+      var ok=false;
+      for(var j=0;j<long.length;j++){
+        if(used[j])continue;
+        if(tokenMatch(short[i],long[j])){used[j]=true;ok=true;break;}
+      }
+      if(!ok)return false;
+    }
+    return true;
+  }
+  function agentAliasEqual(a,b){
+    var na=textNorm(a),nb=textNorm(b);
+    if(!na||!nb)return false;
+    if(na===nb)return true;
+    return tokensCompatible(agentTokens(a),agentTokens(b));
   }
   function pointMatchesAgent(p,agent){
     var want=String(agent||'');
-    var wantNorm=textNorm(want);
-    var wantIsNadir=isNadirAliasSafe(want);
     var vals=[p&&p.agent_display,p&&p.agent,p&&p.my_world,p&&p.owner,p&&p.agente,p&&p['MY WORLD'],p&&p['My World']];
     try{if(typeof visibleAgentName==='function')vals.push(visibleAgentName(p&&p.agent));}catch(e){}
     for(var i=0;i<vals.length;i++){
       var v=String(vals[i]||'');
-      if(v===want)return true;
-      if(textNorm(v)&&textNorm(v)===wantNorm)return true;
-      if(wantIsNadir&&isNadirAliasSafe(v))return true;
+      if(agentAliasEqual(v,want))return true;
     }
     return false;
   }
