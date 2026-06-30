@@ -47,6 +47,8 @@ function collectPrevJson(node,map){if(Array.isArray(node)){node.forEach(x=>colle
 function parsePrev(t){const txt=String(t||'');const map={};try{const js=JSON.parse(txt);collectPrevJson(js,map);if(Object.keys(map).length)return map;}catch(e){}txt.split(/\n+/).forEach(line=>{const p=(line.match(/\b\d{3,6}\b/)||[])[0];if(!p)return;const d=normDateInput(line);if(d)map[p.padStart(5,'0')]=d;});return map;}
 '''
 
+OLD_RECALC = "function recalc(){const days=workdays(document.getElementById('month').value),start=startPoint(PLAN,document.getElementById('start').value);PLAN=assign(PLAN,days,start);renderTable(days.length);}function moveRow(i,d){const j=i+d;if(j<0||j>=PLAN.length)return;[PLAN[i],PLAN[j]]=[PLAN[j],PLAN[i]];recalc();}function delRow(i){PLAN.splice(i,1);recalc();}\n"
+
 
 def patch_html(html: str) -> str:
     changed = False
@@ -60,21 +62,21 @@ def patch_html(html: str) -> str:
         html = html.replace(OLD_NOTE, NEW_NOTE, 1)
         changed = True
 
-    # Replace generate/recalc/parsePrev block while keeping renderTable and export functions.
     if 'function assignSmart(' not in html:
-        html, n1 = re.subn(r"function generatePlanning\(\).*?function renderTable", NEW_JS.strip() + "\nfunction renderTable", html, count=1, flags=re.S)
+        html, n1 = re.subn(r"function generatePlanning\(\)\{.*?renderTable\(days\.length\);\}", NEW_JS.strip(), html, count=1, flags=re.S)
         if n1:
             changed = True
         else:
             print('Attenzione: generatePlanning non trovato')
-        # Remove old recalc/move/del definitions if still present before exportRows.
-        html, n2 = re.subn(r"function recalc\(\).*?function exportRows", "function exportRows", html, count=1, flags=re.S)
-        if n2:
-            changed = True
-        # Remove old parsePrev because NEW_JS already supplies the new one.
-        html, n3 = re.subn(r"function parsePrev\(t\)\{.*?\}\s*\n\s*document\.getElementById\('addPdv'\)", "document.getElementById('addPdv')", html, count=1, flags=re.S)
-        if n3:
-            changed = True
+
+    if OLD_RECALC in html:
+        html = html.replace(OLD_RECALC, '', 1)
+        changed = True
+
+    html, n3 = re.subn(r"function parsePrev\(t\)\{.*?return map;\}\s*\n\s*document\.getElementById\('addPdv'\)", "document.getElementById('addPdv')", html, count=1, flags=re.S)
+    if n3:
+        changed = True
+
     if "togglePeriodDays();renderAll();loadRemote(true);" not in html:
         html = html.replace("renderAll();loadRemote(true);", "togglePeriodDays();renderAll();loadRemote(true);", 1)
         changed = True
