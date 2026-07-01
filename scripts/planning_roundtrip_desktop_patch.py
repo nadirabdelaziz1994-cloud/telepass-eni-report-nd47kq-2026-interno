@@ -3,15 +3,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOCS_DIR = ROOT / "docs"
 
-PLANNING_JS = r'''
-<!-- Roundtrip planning logic + desktop drag fix -->
+PLANNING_JS = r"""
+<!-- Roundtrip planning logic from start point, using existing trasferta form -->
 <script id="planning-roundtrip-desktop-fix">
 (function(){
-  if(window.__mwRoundTripPlanningFix)return;
-  window.__mwRoundTripPlanningFix=true;
+  if(window.__mwRoundTripPlanningFixV3)return;
+  window.__mwRoundTripPlanningFixV3=true;
+
   function byId(id){return document.getElementById(id);}
   function safeNorm(v){try{return norm(v);}catch(e){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}}
   function safeIso(d){try{return iso(d);}catch(e){return d.toISOString().slice(0,10);}}
+  function safeNormPdv(v){try{return normPdv(v);}catch(e){var m=String(v||'').match(/\d+/);return m?m[0].padStart(5,'0'):'';}}
   function sameAgent(p,agent){
     if(!agent)return false;
     var vals=[p&&p.agent_display,p&&p.agent];
@@ -19,13 +21,59 @@ PLANNING_JS = r'''
     var want=safeNorm(agent);
     return vals.some(function(v){return safeNorm(v)===want;});
   }
-  function ensureTripMode(){
-    var start=byId('start');
-    if(!start||byId('tripMode'))return;
-    var wrap=start.closest('div')||start.parentElement;
-    var html='<div><label>Tipo giro</label><select id="tripMode"><option value="home" selected>Giornaliero: parto e torno dal punto di partenza</option><option value="away">Trasferta: giro continuativo tra giorni</option></select><div class="muted" style="font-size:11px;margin-top:4px">Usa “trasferta” solo quando dormi fuori: altrimenti ogni giornata riparte dal punto scritto sopra.</div></div>';
-    if(wrap)wrap.insertAdjacentHTML('afterend',html);
+
+  function removeExtraTripMode(){
+    var el=byId('tripMode');
+    if(!el)return;
+    var wrap=el.closest('div');
+    if(wrap)wrap.remove(); else el.remove();
   }
+
+  function labelTextFor(el){
+    var out=[el.id,el.name,el.placeholder,el.getAttribute('aria-label'),el.getAttribute('data-label')];
+    try{
+      if(el.id){
+        var lab=document.querySelector('label[for="'+CSS.escape(el.id)+'"]');
+        if(lab)out.push(lab.textContent);
+      }
+      var parent=el.closest('div,section,fieldset,label');
+      if(parent)out.push(parent.textContent);
+    }catch(e){}
+    return safeNorm(out.filter(Boolean).join(' '));
+  }
+
+  function isTransferField(el){
+    var t=labelTextFor(el);
+    return t.includes('trasf') || t.includes('trasfer') || t.includes('transfer');
+  }
+
+  function currentTransferDays(){
+    var els=[].slice.call(document.querySelectorAll('input,select,textarea')).filter(isTransferField);
+    if(!els.length)return 0;
+    var explicitNo=false, maxDays=0;
+    els.forEach(function(el){
+      var tag=(el.tagName||'').toLowerCase(), type=String(el.type||'').toLowerCase();
+      var raw=String(el.value||'').trim().toLowerCase();
+      var text=safeNorm(raw);
+      var active=true;
+      if((type==='checkbox'||type==='radio')&&!el.checked)active=false;
+      if(!active)return;
+
+      if(tag==='select' || type==='checkbox' || type==='radio'){
+        if(text==='no'||text==='0'||text==='false'||text==='nessuna'||text==='nessuno')explicitNo=true;
+        if(text==='si'||text==='sì'||text==='yes'||text==='true')maxDays=Math.max(maxDays,1);
+      }
+
+      var m=raw.match(/-?\d+/);
+      if(m){
+        var n=parseInt(m[0],10);
+        if(Number.isFinite(n)&&n>0)maxDays=Math.max(maxDays,n);
+      }
+    });
+    if(explicitNo)return 0;
+    return Math.max(0,maxDays);
+  }
+
   function allKnownGeo(points){
     var out=[];
     try{out=out.concat(points||[]);}catch(e){}
@@ -38,6 +86,7 @@ PLANNING_JS = r'''
       if(seen[key])return false;seen[key]=1;return true;
     });
   }
+
   function avgPoint(list,label,raw){
     var pts=(list||[]).filter(function(p){return p&&p.lat!=null&&p.lng!=null;});
     if(!pts.length)return null;
@@ -45,72 +94,107 @@ PLANNING_JS = r'''
     var lng=pts.reduce(function(s,p){return s+Number(p.lng||0);},0)/pts.length;
     return {pdv:'PARTENZA',city:label||raw||'Partenza',address:raw||'',lat:lat,lng:lng,is_start:true,is_tp:false,is_grab:false,agent_display:''};
   }
+
   window.startPoint = startPoint = function(points,start){
     var raw=String(start||'').trim();
     var s=safeNorm(raw);
     if(!s)return (points&&points[0])||null;
     var all=allKnownGeo(points);
-    var byPdv=all.find(function(p){return safeNorm(p.pdv)===s||normPdv(p.pdv)===normPdv(raw);});
-    if(byPdv)return Object.assign({is_start:true},byPdv,{pdv:'PARTENZA',address:raw||byPdv.address||'',is_tp:false,is_grab:false});
+
+    var byPdv=all.find(function(p){return safeNormPdv(p.pdv)===safeNormPdv(raw)&&safeNormPdv(raw);});
+    if(byPdv)return Object.assign({},byPdv,{pdv:'PARTENZA',address:raw||byPdv.address||'',is_start:true,is_tp:false,is_grab:false});
+
     var exactFull=all.filter(function(p){return safeNorm((p.city||'')+' '+(p.address||''))===s;});
     if(exactFull.length)return avgPoint(exactFull,exactFull[0].city||raw,raw);
-    var containsFull=all.filter(function(p){var text=safeNorm((p.city||'')+' '+(p.address||''));return text&&text.includes(s);});
+
+    var containsFull=all.filter(function(p){
+      var text=safeNorm((p.city||'')+' '+(p.address||''));
+      return text&&text.includes(s);
+    });
     if(containsFull.length)return avgPoint(containsFull,containsFull[0].city||raw,raw);
+
     var exactCity=all.filter(function(p){return safeNorm(p.city)===s;});
     if(exactCity.length)return avgPoint(exactCity,exactCity[0].city||raw,raw);
+
     var cityInStart=all.filter(function(p){var c=safeNorm(p.city);return c&&s.includes(c);});
     if(cityInStart.length)return avgPoint(cityInStart,cityInStart[0].city||raw,raw);
+
     return (points&&points[0])||null;
   };
+
   function validWorkdays(mv){
     var ds=[];
     try{ds=(workdays(mv)||[]).map(function(d){return new Date(d);});}catch(e){ds=[];}
     if(!ds.length){
       var a=String(mv||'').split('-').map(Number),y=a[0],m=a[1];
-      if(y&&m){for(var d=new Date(y,m-1,1);d.getMonth()===m-1;d.setDate(d.getDate()+1)){var w=d.getDay();if(w!==0&&w!==6)ds.push(new Date(d));}}
+      if(y&&m){
+        for(var d=new Date(y,m-1,1);d.getMonth()===m-1;d.setDate(d.getDate()+1)){
+          var w=d.getDay();
+          if(w!==0&&w!==6)ds.push(new Date(d));
+        }
+      }
     }
     var seen={};
     return ds.filter(function(d){
       var k=safeIso(d),w=d.getDay();
-      if(w===0||w===6||seen[k])return false;seen[k]=1;return true;
+      if(w===0||w===6||seen[k])return false;
+      seen[k]=1;
+      return true;
     }).sort(function(a,b){return a-b;});
   }
+
   function prevPenalty(p,mv){
     try{var age=prevAge(p,mv);return age<45?650:(age<90?160:0);}catch(e){return 0;}
   }
-  function chooseBest(left,cur,home,mv,usedCities){
+
+  function chooseBest(left,cur,origin,mv,usedCities){
     var best=null,bestScore=Infinity;
     left.forEach(function(p){
       var city=safeNorm(p.city||'');
-      var sameCity=usedCities&&usedCities[city]? -8:0;
-      var score=km(cur,p)+(km(p,home)*0.35)+prevPenalty(p,mv)+sameCity;
+      var keepCluster=(usedCities&&usedCities[city])?-12:0;
+      var score=km(cur,p)+(km(p,origin)*0.45)+prevPenalty(p,mv)+keepCluster;
       if(score<bestScore){bestScore=score;best=p;}
     });
     return best;
   }
-  function removePoint(left,p){var i=left.indexOf(p);if(i>=0)left.splice(i,1);}
-  function assignRoundTrips(points,days,home,mv,awayMode){
-    var left=(points||[]).slice();
-    var out=[],previousLast=null;
-    if(!home)home=left[0]||null;
+
+  function removePoint(left,p){
+    var i=left.indexOf(p);
+    if(i>=0)left.splice(i,1);
+  }
+
+  function maxVisitsForDay(isTransfer){
+    return isTransfer ? 5 : 4;
+  }
+
+  function assignRoundTrips(points,days,origin,mv,transferDays){
+    var left=(points||[]).slice(), out=[], previousLast=null;
+    var notPlanned=0;
+    if(!origin)origin=left[0]||null;
+
     for(var di=0;di<days.length&&left.length;di++){
-      var remainingDays=days.length-di;
-      var target=Math.max(1,Math.ceil(left.length/remainingDays));
-      var maxCount=Math.min(9,Math.max(target,Math.min(target+2,6)));
-      var origin=(awayMode&&previousLast)?previousLast:home;
-      var cur=origin,mins=0,count=0,usedCities={};
+      var transferActive=transferDays>0 && di<transferDays;
+      var start=(transferActive&&previousLast)?previousLast:origin;
+      var cur=start, mins=0, count=0, usedCities={};
+      var maxCount=maxVisitsForDay(transferActive);
+
       while(left.length&&count<maxCount){
-        var p=chooseBest(left,cur,origin,mv,usedCities);
+        var p=chooseBest(left,cur,start,mv,usedCities);
         if(!p)break;
-        var legKm=km(cur,p),add=travelMin(legKm)+visitMin(p),returnHome=travelMin(km(p,origin));
-        if(count>0&&mins+add+returnHome>540)break;
-        if(count>=target&&mins+add+returnHome>420)break;
+        var legKm=km(cur,p), add=travelMin(legKm)+visitMin(p), returnMin=transferActive?0:travelMin(km(p,start));
+
+        if(count>0&&mins+add+returnMin>540)break;
+        if(count>=3&&mins+add+returnMin>480)break;
+
         removePoint(left,p);
         var day=days[di]||new Date();
         var startMin=9*60+mins+travelMin(legKm);
         mins+=add;
         usedCities[safeNorm(p.city||'')]=1;
-        previousLast=p;cur=p;count++;
+        previousLast=p;
+        cur=p;
+        count++;
+
         out.push(Object.assign({},p,{
           date:safeIso(day),
           dateLabel:dateLabel(day),
@@ -118,50 +202,67 @@ PLANNING_JS = r'''
           time:String(Math.floor(startMin/60)).padStart(2,'0')+':'+String(startMin%60).padStart(2,'0'),
           travel_km:Math.round(legKm),
           visit_min:visitMin(p),
-          day_load:minText(mins+returnHome),
-          return_km:Math.round(km(p,origin)),
-          planning_mode:awayMode?'trasferta':'giornaliero'
+          day_load:minText(mins+returnMin),
+          return_km:transferActive?0:Math.round(km(p,start)),
+          planning_mode:transferActive?'trasferta':'giornaliero'
         }));
       }
     }
-    if(left.length){
-      var extra=validWorkdays(mv);var lastDay=extra[extra.length-1]||new Date();
-      var origin=awayMode&&previousLast?previousLast:home,cur=origin,mins=0;
-      left.forEach(function(p){
-        var legKm=km(cur,p),add=travelMin(legKm)+visitMin(p),returnHome=travelMin(km(p,origin));
-        var startMin=9*60+mins+travelMin(legKm);mins+=add;cur=p;previousLast=p;
-        out.push(Object.assign({},p,{date:safeIso(lastDay),dateLabel:dateLabel(lastDay),dateOnly:dateOnly(lastDay),time:String(Math.floor(startMin/60)).padStart(2,'0')+':'+String(startMin%60).padStart(2,'0'),travel_km:Math.round(legKm),visit_min:visitMin(p),day_load:minText(mins+returnHome),return_km:Math.round(km(p,origin)),planning_mode:awayMode?'trasferta':'giornaliero'}));
-      });
-    }
+
+    notPlanned=left.length;
+    window.__mwNotPlannedCount=notPlanned;
     return out;
   }
+
+  function showMonthLimitWarning(){
+    var n=Number(window.__mwNotPlannedCount||0);
+    var result=byId('result');
+    if(!result)return;
+    var old=byId('monthLimitWarning');
+    if(old)old.remove();
+    if(n>0){
+      result.insertAdjacentHTML('afterbegin','<section id="monthLimitWarning" class="card" style="border-color:#f59e0b;background:#fffbeb"><div class="title" style="color:#92400e">Planning limitato al mese selezionato</div><div class="muted">Sono rimasti fuori <b>'+n.toLocaleString('it-IT')+'</b> PV perché il planning ora rispetta solo i giorni lavorativi del mese scelto. Per inserirli serve un altro mese o giorni di trasferta nel form trasferte.</div></section>');
+    }
+  }
+
   window.generatePlanning = generatePlanning = function(){
-    ensureTripMode();
+    removeExtraTripMode();
     var agent=byId('agent')&&byId('agent').value;
     var mv=byId('month')&&byId('month').value;
-    var inc=byId('grab')&&['yes','all','only_new'].includes(byId('grab').value);
-    var away=byId('tripMode')&&byId('tripMode').value==='away';
+    var grabVal=byId('grab')&&byId('grab').value;
+    var inc=['yes','all','only_new','si','sì'].includes(String(grabVal||'').toLowerCase());
     if(!agent||!mv){alert('Scegli agente e mese');return;}
+
     var pts=[];
     try{pts=allPoints().filter(function(p){return sameAgent(p,agent)&&(inc||!isGrab(p))&&p.lat!=null&&p.lng!=null;});}catch(e){pts=[];}
     if(!pts.length){alert('Nessun PV con coordinate per questo agente');return;}
+
     var days=validWorkdays(mv);
     if(!days.length){alert('Nessun giorno lavorativo trovato per il mese scelto');return;}
-    var home=startPoint(pts,byId('start')&&byId('start').value);
-    PLAN=assignRoundTrips(pts,days,home,mv,away);
+
+    var origin=startPoint(pts,byId('start')&&byId('start').value);
+    var transferDays=currentTransferDays();
+    PLAN=assignRoundTrips(pts,days,origin,mv,transferDays);
     renderTable(days.length);
+    showMonthLimitWarning();
   };
+
   var oldRenderTable=window.renderTable;
   if(typeof oldRenderTable==='function'){
-    window.renderTable = renderTable = function(workdayCount){oldRenderTable(workdayCount);ensureTripMode();};
+    window.renderTable = renderTable = function(workdayCount){
+      oldRenderTable(workdayCount);
+      removeExtraTripMode();
+      showMonthLimitWarning();
+    };
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureTripMode);else ensureTripMode();
-  window.addEventListener('pageshow',ensureTripMode);
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',removeExtraTripMode);else removeExtraTripMode();
+  window.addEventListener('pageshow',removeExtraTripMode);
 })();
 </script>
-'''
+"""
 
-EDIT_JS = r'''
+EDIT_JS = r"""
 <!-- Desktop drag/drop for individual rows and full day blocks -->
 <script id="planning-edit-desktop-drag-fix">
 (function(){
@@ -175,24 +276,8 @@ EDIT_JS = r'''
   function orderedDateSlots(gs){return gs.map(g=>g.date).filter(Boolean).sort();}
   function setDateObj(p,d){p.date=d;if(typeof dateLabel==='function')p.dateLabel=dateLabel(d);if(typeof dateOnly==='function')p.dateOnly=dateOnly(d);}
   function applyBlockDates(order,slots){order.forEach((g,i)=>{const nd=slots[i]||g.date;g.items.forEach(it=>setDateObj(it.p,nd));});}
-  function moveRowToIndex(from,to,targetDate){
-    if(from==null||to==null||from<0||to<0||from>=PLAN.length||to>=PLAN.length)return;
-    const item=PLAN[from];
-    if(targetDate)setDateObj(item,targetDate);
-    PLAN.splice(from,1);
-    if(from<to)to--;
-    PLAN.splice(to,0,item);
-    render();
-  }
-  function appendRowToDay(from,dayIndex){
-    const gs=groups(),g=gs[dayIndex];
-    if(!g||from<0||from>=PLAN.length)return;
-    const item=PLAN[from];setDateObj(item,g.date);
-    PLAN.splice(from,1);
-    let insert=PLAN.length;
-    for(let i=PLAN.length-1;i>=0;i--){if(PLAN[i].date===g.date){insert=i+1;break;}}
-    PLAN.splice(insert,0,item);render();
-  }
+  function moveRowToIndex(from,to,targetDate){if(from==null||to==null||from<0||to<0||from>=PLAN.length||to>=PLAN.length)return;const item=PLAN[from];if(targetDate)setDateObj(item,targetDate);PLAN.splice(from,1);if(from<to)to--;PLAN.splice(to,0,item);render();}
+  function appendRowToDay(from,dayIndex){const gs=groups(),g=gs[dayIndex];if(!g||from<0||from>=PLAN.length)return;const item=PLAN[from];setDateObj(item,g.date);PLAN.splice(from,1);let insert=PLAN.length;for(let i=PLAN.length-1;i>=0;i--){if(PLAN[i].date===g.date){insert=i+1;break;}}PLAN.splice(insert,0,item);render();}
   window.changeBlockDate=function(dayIndex,newDate){const g=groups()[dayIndex];if(!g||!newDate)return;g.items.forEach(it=>setDateObj(it.p,newDate));render();};
   window.moveDayBlock=function(from,to){const gs=groups();if(from===to||from<0||to<0||from>=gs.length||to>=gs.length)return;const slots=orderedDateSlots(gs);const g=gs.splice(from,1)[0];gs.splice(to,0,g);applyBlockDates(gs,slots);PLAN=[];gs.forEach(x=>x.items.forEach(it=>PLAN.push(it.p)));render();};
   window.dayBlockUp=function(i){moveDayBlock(i,i-1);};
@@ -219,7 +304,7 @@ EDIT_JS = r'''
   try{render();}catch(e){}
 })();
 </script>
-'''
+"""
 
 
 def inject_once(html: str, marker: str, snippet: str) -> str:
@@ -230,22 +315,35 @@ def inject_once(html: str, marker: str, snippet: str) -> str:
     return html + '\n' + snippet
 
 
+def remove_old_roundtrip_patches(html: str) -> str:
+    start = html.find('<!-- Roundtrip planning logic')
+    while start != -1:
+        end = html.find('</script>', start)
+        if end == -1:
+            break
+        html = html[:start] + html[end + len('</script>'):]
+        start = html.find('<!-- Roundtrip planning logic')
+    return html
+
+
 def main():
     planning = DOCS_DIR / 'planning.html'
     if planning.exists():
         html = planning.read_text(encoding='utf-8')
+        html = remove_old_roundtrip_patches(html)
         html = inject_once(html, 'planning-roundtrip-desktop-fix', PLANNING_JS)
         planning.write_text(html, encoding='utf-8')
-        print('Planning roundtrip/dates patch applicata')
+        print('Planning roundtrip/month/trasferta patch applicata')
     else:
         print('planning.html non trovato, roundtrip patch saltata')
 
     edit = DOCS_DIR / 'planning-edit.html'
     if edit.exists():
         html = edit.read_text(encoding='utf-8')
-        html = inject_once(html, 'planning-edit-desktop-drag-fix', EDIT_JS)
+        if 'planning-edit-desktop-drag-fix' not in html:
+            html = inject_once(html, 'planning-edit-desktop-drag-fix', EDIT_JS)
         edit.write_text(html, encoding='utf-8')
-        print('Planning editor desktop drag patch applicata')
+        print('Planning editor desktop drag patch verificata')
     else:
         print('planning-edit.html non trovato, desktop drag patch saltata')
 
