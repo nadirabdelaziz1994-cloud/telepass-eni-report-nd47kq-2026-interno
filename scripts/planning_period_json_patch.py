@@ -13,6 +13,11 @@ def main():
         planning_month_plus_10_patch.main()
     except Exception as exc:
         print("Patch mese+10 non applicata su HTML generato:", exc)
+    try:
+        import planning_clean_colleague_ui_patch
+        planning_clean_colleague_ui_patch.main()
+    except Exception as exc:
+        print("Pulizia UI planning colleghi non applicata:", exc)
 
 
 if __name__ == "__main__":
