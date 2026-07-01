@@ -3,8 +3,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def safe_payload_expr(module_name: str) -> str:
-    return f'''payload = {module_name}.json.dumps(data, ensure_ascii=False).replace("</", "<\\/").replace("\\u2028", "\\\\u2028").replace("\\u2029", "\\\\u2029")
+def safe_payload_expr(dumps_expr: str) -> str:
+    return f'''payload = {dumps_expr}(data, ensure_ascii=False).replace("</", "<\\/").replace("\\u2028", "\\\\u2028").replace("\\u2029", "\\\\u2029")
     return tpl.replace("__DATA_JSON__", payload).replace("__CURRENT_WEEK__", f"{{data['meta']['current_week']:02d}}")'''
 
 
@@ -39,7 +39,7 @@ def patch_dashboard_github():
     path = ROOT / "aggiorna_dashboard_github.py"
     text = path.read_text(encoding="utf-8")
     old = 'return tpl.replace("__DATA_JSON__", base.json.dumps(data, ensure_ascii=False)).replace("__CURRENT_WEEK__", f"{data[\'meta\'][\'current_week\']:02d}")'
-    new = safe_payload_expr("base")
+    new = safe_payload_expr("base.json.dumps")
     if old in text:
         text = text.replace(old, new, 1)
         path.write_text(text, encoding="utf-8")
@@ -56,7 +56,7 @@ def patch_dashboard_base():
         return
     text = path.read_text(encoding="utf-8")
     old = 'return tpl.replace("__DATA_JSON__", json.dumps(data, ensure_ascii=False)).replace("__CURRENT_WEEK__", f"{data[\'meta\'][\'current_week\']:02d}")'
-    new = safe_payload_expr("json")
+    new = safe_payload_expr("json.dumps")
     if old in text:
         text = text.replace(old, new, 1)
         path.write_text(text, encoding="utf-8")
