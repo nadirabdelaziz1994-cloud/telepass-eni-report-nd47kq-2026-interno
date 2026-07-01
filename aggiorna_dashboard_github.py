@@ -118,143 +118,80 @@ def parse_report_dynamic(path):
     week_after = (c_ass_ly or c_ass_week or 0)
     c_up_eu_week = first_match(["UPSELL. EU", ["UPSELL", "EU"], ["UP", "EU"]], after=week_after)
     c_sost_week = first_match(["SOST. FAMILY", ["SOST", "FAMILY"]], after=week_after)
-    c_sost_family_week = c_sost_week
+    c_prospect = first_match(["PROSPECT", ["PROSPECT"]], after=(c_sost_week or c_up_eu_week or week_after))
 
-    c_tot_sales = first_match([
-        f"TOTALE VENDITE TELEPASS {year}",
-        [str(year), "TOTALE", "VENDITE", "TELEPASS"],
-        [str(year), "TOTALE", "VENDITE"],
-    ])
-    c_tot_sales_prev = first_match([
-        f"TOTALE VENDITE TELEPASS {year-1}",
-        [str(year-1), "TOTALE", "VENDITE", "TELEPASS"],
-        [str(year-1), "TOTALE", "VENDITE"],
-    ])
-    c_tot_twin = first_match(["TOTALE TWIN", ["TOTALE", "TWIN"]], after=(c_tot_sales_prev or c_tot_sales or 0))
-    c_tot_bus = first_match(["DI CUI BUSINESS", ["BUSINESS"]], after=(c_tot_twin or c_tot_sales_prev or c_tot_sales or 0))
-    c_tot_ass = first_match([f"TOTALE ASS. STRAD. {year}", [str(year), "TOTALE", "ASS", "STRAD"]])
-    c_tot_ass_prev = first_match([f"TOTALE ASS. STRAD. {year-1}", [str(year-1), "TOTALE", "ASS", "STRAD"]])
-    totals_after = (c_tot_ass_prev or c_tot_ass or 0)
-    c_tot_sost = first_match(["SOST.", ["SOST"]], after=totals_after)
-    c_tot_up_eu = first_match(["UPSELL. EU", ["UPSELL", "EU"], ["UP", "EU"]], after=totals_after)
-    c_tot_sost_family = first_match(["SOST. FAMILY", ["SOST", "FAMILY"]], after=totals_after)
+    if not c_pdv:
+        raise RuntimeError(f"Colonna PDV non trovata in {path}")
 
-    recs = []
+    rows = []
     for row in ws.iter_rows(min_row=5, values_only=True):
-        if not row:
-            continue
-        pdv = base.norm_pdv(row[c_pdv - 1] if c_pdv else None)
+        pdv = base.norm_pdv(row[c_pdv - 1] if c_pdv and len(row) >= c_pdv else None)
         if not pdv:
             continue
-        vend_week = base.safe_num(row[c_vend_week - 1]) if c_vend_week else None
-        bus_week = base.safe_num(row[c_bus_week - 1]) if c_bus_week else 0
-        if bus_week is not None and (bus_week < 0 or (abs(bus_week - round(bus_week)) > 1e-6 and abs(bus_week) < 1)):
-            bus_week = 0
-        twin_week = base.safe_num(row[c_twin - 1]) if c_twin else None
-        if twin_week is not None and twin_week < 0:
-            twin_week = 0
-        recs.append({
+        def val(c):
+            return row[c - 1] if c and len(row) >= c else None
+        rows.append({
             "pdv": pdv,
             "week_year": year,
             "week_num": week,
-            "period": f"{year}-W{week_2}",
-            "area_report": row[c_area - 1] if c_area else "",
-            "regione": row[c_reg - 1] if c_reg else "",
-            "provincia": row[c_prov - 1] if c_prov else "",
-            "citta": row[c_city - 1] if c_city else "",
-            "indirizzo": row[c_addr - 1] if c_addr else "",
-            "data_attivazione": row[c_data - 1].strftime("%Y-%m-%d") if c_data and hasattr(row[c_data - 1], "strftime") else (str(row[c_data - 1]) if c_data and row[c_data - 1] else ""),
-            "attivo": row[c_attivo - 1] if c_attivo else "",
-            "vendite_settimana": vend_week or 0,
-            "vendite_anno_prec_stessa_sett": base.safe_num(row[c_vend_ly - 1]) if c_vend_ly else 0,
-            "twin_settimana": twin_week or 0,
-            "business_vendite_settimana": bus_week or 0,
-            "prospect_settimana": max((vend_week or 0) - (bus_week or 0), 0),
-            "ass_settimana": base.safe_num(row[c_ass_week - 1]) if c_ass_week else 0,
-            "ass_anno_prec_stessa_sett": base.safe_num(row[c_ass_ly - 1]) if c_ass_ly else 0,
-            "sost_settimana": base.safe_num(row[c_sost_week - 1]) if c_sost_week else 0,
-            "upgrade_eu_settimana": base.safe_num(row[c_up_eu_week - 1]) if c_up_eu_week else 0,
-            "sost_family_settimana": base.safe_num(row[c_sost_family_week - 1]) if c_sost_family_week else 0,
-            "tot_vendite_anno": base.safe_num(row[c_tot_sales - 1]) if c_tot_sales else 0,
-            "tot_vendite_anno_prec": base.safe_num(row[c_tot_sales_prev - 1]) if c_tot_sales_prev else 0,
-            "tot_twin_report": base.safe_num(row[c_tot_twin - 1]) if c_tot_twin else 0,
-            "tot_business_vendite_anno": base.safe_num(row[c_tot_bus - 1]) if c_tot_bus else 0,
-            "tot_ass_anno": base.safe_num(row[c_tot_ass - 1]) if c_tot_ass else 0,
-            "tot_ass_anno_prec": base.safe_num(row[c_tot_ass_prev - 1]) if c_tot_ass_prev else 0,
-            "tot_sost_anno": base.safe_num(row[c_tot_sost - 1]) if c_tot_sost else 0,
-            "tot_upgrade_eu_anno": base.safe_num(row[c_tot_up_eu - 1]) if c_tot_up_eu else 0,
-            "tot_sost_family_anno": base.safe_num(row[c_tot_sost_family - 1]) if c_tot_sost_family else 0,
-            "source_file": base.os.path.basename(path),
+            "period": f"{year}-W{int(week):02d}",
+            "area_report": val(c_area) or "",
+            "regione": val(c_reg) or "",
+            "provincia": val(c_prov) or "",
+            "citta": val(c_city) or "",
+            "indirizzo": val(c_addr) or "",
+            "data_attivazione": str(val(c_data) or ""),
+            "attivo": val(c_attivo) or "",
+            "vendite_settimana": _preferred_total(val(c_vend_week), 0),
+            "vendite_anno_prec_stessa_sett": _preferred_total(val(c_vend_ly), 0),
+            "twin_settimana": base.safe_num(val(c_twin)) or 0,
+            "business_vendite_settimana": base.safe_num(val(c_bus_week)) or 0,
+            "prospect_settimana": base.safe_num(val(c_prospect)) or 0,
+            "ass_settimana": base.safe_num(val(c_ass_week)) or 0,
+            "ass_anno_prec_stessa_sett": base.safe_num(val(c_ass_ly)) or 0,
+            "sost_settimana": base.safe_num(val(c_sost_week)) or 0,
+            "upgrade_eu_settimana": base.safe_num(val(c_up_eu_week)) or 0,
+            "source_file": os.path.basename(path),
         })
-    return recs
+    return rows
 
 
 def enrich_current(records, config):
-    hist = base.defaultdict(list)
-    for r in records:
-        hist[r["pdv"]].append(r)
-    for pdv in hist:
-        hist[pdv].sort(key=lambda x: (x["week_year"], x["week_num"]))
     current_yearweek = max((r["week_year"], r["week_num"]) for r in records)
+    by_pdv = {}
+    for r in records:
+        by_pdv.setdefault(r["pdv"], []).append(r)
+    hist = {}
     current = []
-    th = config["thresholds"]
-    for pdv, arr in hist.items():
-        cur = next((x for x in arr if (x["week_year"], x["week_num"]) == current_yearweek), None)
-        if not cur:
-            continue
-        cur = cur.copy()
-        prev = arr[-2] if len(arr) >= 2 else None
-        sales_ytd_sum = sum((x.get("vendite_settimana") or 0) for x in arr)
-        sales_prev_ytd_sum = sum((x.get("vendite_anno_prec_stessa_sett") or 0) for x in arr)
-        assist_ytd_sum = sum((x.get("ass_settimana") or 0) for x in arr)
-        assist_prev_ytd_sum = sum((x.get("ass_anno_prec_stessa_sett") or 0) for x in arr)
-        twin_ytd_sum = sum((x.get("twin_settimana") or 0) for x in arr)
-        business_ytd_sum = sum((x.get("business_vendite_settimana") or 0) for x in arr)
-        prospect_ytd_sum = sum((x.get("prospect_settimana") or 0) for x in arr)
-        sost_ytd_sum = sum((x.get("sost_settimana") or 0) for x in arr)
-        sost_family_ytd_sum = sum((x.get("sost_family_settimana") or 0) for x in arr)
-        up_eu_ytd_sum = sum((x.get("upgrade_eu_settimana") or 0) for x in arr)
-        cur["agente"] = cur.get("agente", "")
-        cur["cr"] = cur.get("cr", "")
-        cur["rzv"] = cur.get("rzv", "")
-        cur["business_ytd_calc"] = business_ytd_sum
-        cur["twin_ytd_calc"] = twin_ytd_sum
-        cur["prospect_ytd_calc"] = prospect_ytd_sum
-        cur["tot_vendite_anno"] = _preferred_total(cur.get("tot_vendite_anno"), sales_ytd_sum)
-        cur["tot_vendite_anno_prec"] = _preferred_total(cur.get("tot_vendite_anno_prec"), sales_prev_ytd_sum)
-        cur["tot_ass_anno"] = _preferred_total(cur.get("tot_ass_anno"), assist_ytd_sum)
-        cur["tot_ass_anno_prec"] = _preferred_total(cur.get("tot_ass_anno_prec"), assist_prev_ytd_sum)
-        cur["tot_sost_anno"] = _preferred_total(cur.get("tot_sost_anno"), sost_ytd_sum)
-        cur["tot_sost_family_anno"] = _preferred_total(cur.get("tot_sost_family_anno"), sost_family_ytd_sum)
-        cur["tot_upgrade_eu_anno"] = _preferred_total(cur.get("tot_upgrade_eu_anno"), up_eu_ytd_sum)
-        cur["prev_week"] = prev["week_num"] if prev else None
-        cur["vendite_week_diff"] = (cur.get("vendite_settimana") or 0) - ((prev or {}).get("vendite_settimana") or 0) if prev else None
-        cur["prospect_week_diff"] = (cur.get("prospect_settimana") or 0) - ((prev or {}).get("prospect_settimana") or 0) if prev else None
-        cur["ass_week_diff"] = (cur.get("ass_settimana") or 0) - ((prev or {}).get("ass_settimana") or 0) if prev else None
-        cur["sales_ytd_diff"] = (cur.get("tot_vendite_anno") or 0) - (cur.get("tot_vendite_anno_prec") or 0)
-        cur["assist_ytd_diff"] = (cur.get("tot_ass_anno") or 0) - (cur.get("tot_ass_anno_prec") or 0)
-        cur["sales_ytd_pct"] = base.pct(cur.get("tot_vendite_anno"), cur.get("tot_vendite_anno_prec"))
-        cur["assist_ytd_pct"] = base.pct(cur.get("tot_ass_anno"), cur.get("tot_ass_anno_prec"))
-        ops = (cur.get("tot_vendite_anno") or 0) + (cur.get("tot_sost_family_anno") or 0)
-        cur["attach_rate"] = (cur.get("tot_ass_anno") or 0) / ops if ops else None
-        cur["up_eu_rate"] = (cur.get("tot_upgrade_eu_anno") or 0) / (cur.get("tot_sost_family_anno") or 0) if (cur.get("tot_sost_family_anno") or 0) else None
-        remaining = max(52 - cur["week_num"], 1)
-        gap = max((cur.get("tot_vendite_anno_prec") or 0) - (cur.get("tot_vendite_anno") or 0), 0)
-        cur["sales_recovery_weekly_need"] = gap / remaining if gap > 0 else 0
-        cur["current_weekly_avg"] = (cur.get("tot_vendite_anno") or 0) / max(cur["week_num"], 1)
-        trend = ""
-        if len(arr) >= 2 and (arr[-1].get("vendite_settimana") or 0) < (arr[-2].get("vendite_settimana") or 0):
-            if len(arr) >= 3 and (arr[-2].get("vendite_settimana") or 0) < (arr[-3].get("vendite_settimana") or 0):
-                trend = f"In calo da 2 settimane (W{arr[-3]['week_num']:02d} → W{arr[-2]['week_num']:02d} → W{arr[-1]['week_num']:02d})"
-            else:
-                trend = f"Ultima settimana in calo vs W{arr[-2]['week_num']:02d}"
-        cur["trend_note"] = trend
-        sp = cur["sales_ytd_pct"] if cur["sales_ytd_pct"] is not None else 0
-        ap = cur["assist_ytd_pct"] if cur["assist_ytd_pct"] is not None else 0
-        sales_bad = sp <= th["sales_bad_pct"] and cur["sales_ytd_diff"] <= -th["sales_bad_abs"]
-        sales_warn = sp <= th["sales_warn_pct"] and cur["sales_ytd_diff"] <= -th["sales_warn_abs"]
-        assist_bad = ap <= th["assist_bad_pct"] and cur["assist_ytd_diff"] <= -th["assist_bad_abs"]
-        assist_warn = ap <= th["assist_warn_pct"] and cur["assist_ytd_diff"] <= -th["assist_warn_abs"]
+    for pdv, rows in by_pdv.items():
+        rows = sorted(rows, key=lambda x: (x["week_year"], x["week_num"]))
+        hist[pdv] = rows
+        cur = dict(rows[-1])
+        ytd_rows = [x for x in rows if x["week_year"] == current_yearweek[0] and x["week_num"] <= current_yearweek[1]]
+        cur["tot_vendite_anno"] = sum(x.get("vendite_settimana") or 0 for x in ytd_rows)
+        cur["tot_vendite_anno_prec"] = sum(x.get("vendite_anno_prec_stessa_sett") or 0 for x in ytd_rows)
+        cur["tot_twin_report"] = sum(x.get("twin_settimana") or 0 for x in ytd_rows)
+        cur["tot_business_vendite_anno"] = sum(x.get("business_vendite_settimana") or 0 for x in ytd_rows)
+        cur["tot_ass_anno"] = sum(x.get("ass_settimana") or 0 for x in ytd_rows)
+        cur["tot_ass_anno_prec"] = sum(x.get("ass_anno_prec_stessa_sett") or 0 for x in ytd_rows)
+        cur["tot_sost_family_anno"] = sum(x.get("sost_settimana") or 0 for x in ytd_rows)
+        cur["tot_upgrade_eu_anno"] = sum(x.get("upgrade_eu_settimana") or 0 for x in ytd_rows)
+        cur["prospect_ytd_calc"] = sum(x.get("prospect_settimana") or 0 for x in ytd_rows)
+        cur["twin_ytd_calc"] = cur["tot_twin_report"]
+        cur["business_ytd_calc"] = cur["tot_business_vendite_anno"]
+        cur["attach_rate_calc"] = (cur["tot_ass_anno"] / cur["tot_vendite_anno"] * 100) if cur["tot_vendite_anno"] else None
+        cur["up_eu_rate_calc"] = (cur["tot_upgrade_eu_anno"] / cur["tot_vendite_anno"] * 100) if cur["tot_vendite_anno"] else None
+        sales_bad = cur["tot_vendite_anno"] < cur["tot_vendite_anno_prec"] * config.get("sales_bad_threshold", 0.8) if cur["tot_vendite_anno_prec"] else False
+        sales_warn = cur["tot_vendite_anno"] < cur["tot_vendite_anno_prec"] if cur["tot_vendite_anno_prec"] else False
+        assist_bad = cur["tot_ass_anno"] < cur["tot_ass_anno_prec"] * config.get("assist_bad_threshold", 0.8) if cur["tot_ass_anno_prec"] else False
+        assist_warn = cur["tot_ass_anno"] < cur["tot_ass_anno_prec"] if cur["tot_ass_anno_prec"] else False
+        cur["trend_note"] = ""
+        if len(rows) >= 3:
+            last3 = [x.get("vendite_settimana") or 0 for x in rows[-3:]]
+            if all(v == 0 for v in last3):
+                cur["trend_note"] = "Nessuna vendita nelle ultime 3 settimane"
+            elif last3[-1] < last3[0]:
+                cur["trend_note"] = "Vendite in calo nelle ultime settimane"
         reasons = []
         if sales_bad or sales_warn:
             reasons.append("Vendite 2026 sotto il 2025")
@@ -288,7 +225,10 @@ def build_html(data):
     tpl = tpl_path.read_text(encoding="utf-8")
     if not tpl.strip():
         raise RuntimeError("template_dashboard.html è vuoto.")
-    return tpl.replace("__DATA_JSON__", base.json.dumps(data, ensure_ascii=False)).replace("__CURRENT_WEEK__", f"{data['meta']['current_week']:02d}")
+    payload = base.json.dumps(data, ensure_ascii=False)
+    # Fondamentale: evita che testo proveniente da Excel/file chiuda il tag <script> della pagina.
+    payload = payload.replace("</", "<\\/").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+    return tpl.replace("__DATA_JSON__", payload).replace("__CURRENT_WEEK__", f"{data['meta']['current_week']:02d}")
 
 
 def _find_latest_custom_report(root_dir):
@@ -425,11 +365,6 @@ def main():
     print("Creato:", html_path)
     print("Creato:", master_xlsx)
     print("Creato:", log_path)
-
-
-base.parse_report_dynamic = parse_report_dynamic
-base.enrich_current = enrich_current
-base.build_html = build_html
 
 
 if __name__ == "__main__":
