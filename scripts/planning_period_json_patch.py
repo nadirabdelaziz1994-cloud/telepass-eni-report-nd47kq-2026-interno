@@ -8,6 +8,8 @@ def main():
     print("Planning period/json patch disattivato")
     import planning_roundtrip_desktop_patch
     planning_roundtrip_desktop_patch.main()
+    import planning_month_plus_10_patch
+    planning_month_plus_10_patch.main()
 
 
 if __name__ == "__main__":
