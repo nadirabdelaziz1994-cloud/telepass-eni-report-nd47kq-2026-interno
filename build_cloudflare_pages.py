@@ -7,6 +7,9 @@ def run(cmd):
     print('> ' + ' '.join(cmd))
     subprocess.check_call(cmd, cwd=ROOT)
 
+# Protezione conservativa: evita che dati/file con testo particolare rompano lo script della Home.
+run(['python', 'scripts/main_site_safe_json_patch.py'])
+
 run(['python', 'build_bundle.py'])
 run(['python', 'scripts/grab_go_patch.py'])
 run(['python', 'scripts/grab_go_cloud_patch.py'])
