@@ -18,6 +18,11 @@ def main():
         planning_clean_colleague_ui_patch.main()
     except Exception as exc:
         print("Pulizia UI planning colleghi non applicata:", exc)
+    try:
+        import planning_admin_link_capacity_patch
+        planning_admin_link_capacity_patch.main()
+    except Exception as exc:
+        print("Pulsante admin/capacità planning non applicati:", exc)
 
 
 if __name__ == "__main__":
