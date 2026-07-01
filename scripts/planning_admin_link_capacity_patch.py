@@ -7,8 +7,8 @@ SNIPPET = r'''
 <!-- Planning admin link + higher daily capacity -->
 <script id="planning-admin-link-capacity-fix">
 (function(){
-  if(window.__mwAdminLinkCapacityFix)return;
-  window.__mwAdminLinkCapacityFix=true;
+  if(window.__mwAdminLinkCapacityFixV2)return;
+  window.__mwAdminLinkCapacityFixV2=true;
 
   function byId(id){return document.getElementById(id);}
   function isAdmin(){
@@ -18,20 +18,35 @@ SNIPPET = r'''
     try{return norm(v);}catch(e){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
   }
 
-  function ensureHeaderButton(){
-    var row=document.querySelector('header .row');
-    if(!row || byId('adminPlanningLink'))return;
-    var link=document.createElement('a');
-    link.id='adminPlanningLink';
-    link.className='top';
-    link.href=isAdmin()?'./planning.html?v=from-admin':'./planning.html?admin=1&v=admin';
-    link.textContent=isAdmin()?'← Torna al planning':'Gestione modifiche';
-    var back=row.querySelector('a.top');
-    if(back) row.insertBefore(link, back); else row.appendChild(link);
+  function removeHeaderManagementLink(){
+    var old=byId('adminPlanningLink');
+    if(old) old.remove();
+  }
+
+  function ensureManagementButton(formSection){
+    removeHeaderManagementLink();
+    if(!formSection || byId('managePvWrap'))return;
+    var title=formSection.querySelector('.title');
+    var wrap=document.createElement('div');
+    wrap.id='managePvWrap';
+    wrap.className='actions';
+    wrap.style.margin='0 0 12px 0';
+    wrap.innerHTML='<a class="btn light" id="managePvButton" style="text-decoration:none;display:inline-flex;align-items:center" href="./planning.html?admin=1&v=admin">Aggiungi/Rimuovi un punto vendita</a>';
+    if(title) formSection.insertBefore(wrap,title); else formSection.insertBefore(wrap,formSection.firstChild);
+  }
+
+  function ensureBackButton(adminSection){
+    if(!adminSection || byId('backPlanningWrap'))return;
+    var wrap=document.createElement('div');
+    wrap.id='backPlanningWrap';
+    wrap.className='actions';
+    wrap.style.margin='0 0 12px 0';
+    wrap.innerHTML='<a class="btn light" style="text-decoration:none;display:inline-flex;align-items:center" href="./planning.html?v=from-admin">← Torna al planning</a>';
+    adminSection.insertBefore(wrap,adminSection.firstChild);
   }
 
   function cleanUiMode(){
-    ensureHeaderButton();
+    removeHeaderManagementLink();
     var adminSection=byId('apiStatus') ? byId('apiStatus').closest('section') : null;
     var sourceSection=byId('sourceBox') ? byId('sourceBox').closest('section') : null;
     var formSection=byId('agent') ? byId('agent').closest('section') : null;
@@ -43,7 +58,10 @@ SNIPPET = r'''
       if(formSection) formSection.style.display='none';
       if(metrics) metrics.style.display='none';
       if(result) result.style.display='none';
-      if(adminSection) adminSection.style.display='block';
+      if(adminSection){
+        adminSection.style.display='block';
+        ensureBackButton(adminSection);
+      }
       document.title='Gestione modifiche planning - Telepass';
       var h=document.querySelector('header h1'); if(h) h.textContent='Gestione modifiche planning';
       return;
@@ -51,7 +69,10 @@ SNIPPET = r'''
 
     if(sourceSection) sourceSection.style.display='none';
     if(adminSection) adminSection.style.display='none';
-    if(formSection) formSection.style.display='block';
+    if(formSection){
+      formSection.style.display='block';
+      ensureManagementButton(formSection);
+    }
     if(metrics) metrics.style.display='grid';
     if(result) result.style.display='block';
 
@@ -171,16 +192,16 @@ def main():
         print("planning.html non trovato, admin/capacity patch saltata")
         return
     html = path.read_text(encoding="utf-8")
-    marker = 'planning-admin-link-capacity-fix'
-    if marker in html:
+    start = html.find('<!-- Planning admin link + higher daily capacity -->')
+    while start != -1:
+        end = html.find('</script>', start)
+        if end == -1:
+            break
+        html = html[:start] + html[end + len('</script>'):]
         start = html.find('<!-- Planning admin link + higher daily capacity -->')
-        if start != -1:
-            end = html.find('</script>', start)
-            if end != -1:
-                html = html[:start] + html[end + len('</script>'):]
     html = html.replace('</body>', SNIPPET + '\n</body>', 1)
     path.write_text(html, encoding="utf-8")
-    print("Planning admin link e capacità giornaliera aumentata")
+    print("Planning admin link spostato sopra Dati planning e capacità giornaliera aggiornata")
 
 
 if __name__ == "__main__":
