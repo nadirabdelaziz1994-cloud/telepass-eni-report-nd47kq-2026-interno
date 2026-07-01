@@ -17,9 +17,6 @@ SNIPPET = r'''
   function nrm(v){
     try{return norm(v);}catch(e){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
   }
-  function fmtSafe(v){
-    try{return fmt(v);}catch(e){return Number(v||0).toLocaleString('it-IT');}
-  }
 
   function ensureHeaderButton(){
     var row=document.querySelector('header .row');
@@ -79,6 +76,13 @@ SNIPPET = r'''
     return best;
   }
 
+  function effectiveVisitMin(p){
+    // Nel file resta 45 minuti come riferimento visita.
+    // Per il carico giornata usiamo una media più reale, perché molte visite durano 10/15/20 minuti.
+    if(isGrab(p))return 10;
+    return 25;
+  }
+
   window.assign = assign = function(ordered,days,start,mv){
     var left=(ordered||[]).slice(),out=[],prev=null;
     var transferCount=0;
@@ -88,16 +92,20 @@ SNIPPET = r'''
       var tr=transferCount>0 && di<transferCount;
       var origin=(tr&&prev)?prev:start;
       var cur=origin,mins=0,count=0,used={};
-      var maxCount=tr?8:7;
-      var maxMinutes=tr?660:600;
+      var maxCount=tr?10:9;
+      var maxMinutes=tr?720:690;
 
       while(left.length && count<maxCount){
         var p=chooseMore(left,cur,origin,mv,used);
         if(!p)break;
-        var leg=km(cur,p),add=travelMin(leg)+visitMin(p),ret=tr?0:travelMin(km(p,origin));
+        var leg=km(cur,p);
+        var visitRef=visitMin(p);
+        var visitCalc=effectiveVisitMin(p);
+        var add=travelMin(leg)+visitCalc;
+        var ret=tr?0:travelMin(km(p,origin));
 
         if(count>0 && mins+add+ret>maxMinutes)break;
-        if(count>=5 && mins+add+ret>maxMinutes+45)break;
+        if(count>=7 && mins+add+ret>maxMinutes+45)break;
 
         left.splice(left.indexOf(p),1);
         var day=days[di],st=9*60+mins+travelMin(leg);
@@ -113,7 +121,7 @@ SNIPPET = r'''
           dateOnly:dateOnly(day),
           time:String(Math.floor(st/60)).padStart(2,'0')+':'+String(st%60).padStart(2,'0'),
           travel_km:Math.round(leg),
-          visit_min:visitMin(p),
+          visit_min:visitRef,
           day_load:minText(mins+ret),
           return_km:tr?0:Math.round(km(p,origin)),
           planning_mode:tr?'trasferta':'giornaliero'
@@ -163,8 +171,14 @@ def main():
         print("planning.html non trovato, admin/capacity patch saltata")
         return
     html = path.read_text(encoding="utf-8")
-    if 'planning-admin-link-capacity-fix' not in html:
-        html = html.replace('</body>', SNIPPET + '\n</body>', 1)
+    marker = 'planning-admin-link-capacity-fix'
+    if marker in html:
+        start = html.find('<!-- Planning admin link + higher daily capacity -->')
+        if start != -1:
+            end = html.find('</script>', start)
+            if end != -1:
+                html = html[:start] + html[end + len('</script>'):]
+    html = html.replace('</body>', SNIPPET + '\n</body>', 1)
     path.write_text(html, encoding="utf-8")
     print("Planning admin link e capacità giornaliera aumentata")
 
