@@ -13,6 +13,15 @@ def patch_template_dashboard():
     text = path.read_text(encoding="utf-8")
     changed = False
 
+    # Fix conservativo: evita una template string annidata nella funzione di stampa/PDF.
+    # Quella parte può rompere l'intero script e far vedere codice JavaScript in pagina.
+    bad = "${(r.ytd?.sales_2026||0) >= (r.ytd?.sales_2025||0) ? 'In linea col 2025' : `${fmtNum(r.ytd?.recovery_week_need)} / settimana`}"
+    good = "${(r.ytd?.sales_2026||0) >= (r.ytd?.sales_2025||0) ? 'In linea col 2025' : (fmtNum(r.ytd?.recovery_week_need) + ' / settimana')}"
+    if bad in text:
+        text = text.replace(bad, good)
+        changed = True
+        print("Fix template string stampa/PDF applicato")
+
     # Sposta il JSON fuori dallo script JS principale. Così, anche se un dato contiene testo strano,
     # non può tagliare a metà lo script e far vedere codice JavaScript in pagina.
     if '<script id="app-data" type="application/json">__DATA_JSON__</script>' not in text:
@@ -22,6 +31,7 @@ def patch_template_dashboard():
             1,
         )
         changed = True
+        print("Template dashboard isolato: JSON fuori dallo script principale")
     else:
         text = text.replace(
             'const APP = __DATA_JSON__;',
@@ -30,9 +40,8 @@ def patch_template_dashboard():
 
     if changed:
         path.write_text(text, encoding="utf-8")
-        print("Template dashboard isolato: JSON fuori dallo script principale")
     else:
-        print("Template dashboard già isolato")
+        print("Template dashboard già corretto")
 
 
 def patch_dashboard_github():
