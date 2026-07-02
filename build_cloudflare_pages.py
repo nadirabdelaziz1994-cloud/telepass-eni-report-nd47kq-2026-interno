@@ -4,34 +4,9 @@ ROOT = Path(__file__).resolve().parent
 DOCS = ROOT / 'docs'
 DOCS.mkdir(exist_ok=True)
 
-html = '''<!doctype html>
-<html lang="it">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sito in manutenzione</title>
-  <style>
-    :root{--bg:#f4f7fb;--card:#fff;--ink:#10243e;--muted:#607089;--line:#d7dfeb;--blue:#0f2746}
-    *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);padding:18px}
-    .card{max-width:680px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:0 10px 28px rgba(16,36,62,.12);padding:28px;text-align:center}
-    .brand{font-size:22px;font-weight:950;color:var(--blue);margin-bottom:12px}
-    h1{margin:0 0 10px;font-size:34px;line-height:1.05}
-    p{margin:0;color:var(--muted);font-size:17px;line-height:1.45}
-    .badge{display:inline-flex;margin-top:18px;padding:8px 13px;border-radius:999px;background:#eef4fb;color:var(--blue);font-weight:850;font-size:13px}
-    @media(max-width:620px){.card{padding:22px}.brand{font-size:19px}h1{font-size:28px}p{font-size:15px}}
-  </style>
-</head>
-<body>
-  <main class="card">
-    <div class="brand">MyWorld Report</div>
-    <h1>Sito in manutenzione</h1>
-    <p>Stiamo aggiornando i dati e preparando una versione più stabile.</p>
-    <div class="badge">Torna più tardi</div>
-  </main>
-</body>
-</html>'''
+u = 'https://' + 'myworld-report.pages.dev' + '/'
+html = f'<html><head><meta charset="utf-8"><title>MyWorld Report</title></head><body style="font-family:Arial;text-align:center;padding:60px"><h1>MyWorld Report</h1><p>Versione aggiornata disponibile.</p><p><a href="{u}">Apri report</a></p></body></html>'
 
 (DOCS / 'index.html').write_text(html, encoding='utf-8')
 (DOCS / '.nojekyll').write_text('', encoding='utf-8')
-print('Pagina manutenzione pubblicata. Output: docs/index.html')
+print('Output: docs/index.html')
